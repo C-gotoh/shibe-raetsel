@@ -1,3 +1,5 @@
+dimensions = {x=4,y=4}
+
 function updatePuzzle(clickedNumber)
 	zeroindex = {}
 	clickedindex = {}
@@ -33,8 +35,8 @@ function updatePuzzle(clickedNumber)
 end
 
 function printPuzzle()
-		for i=1,4 do
-		for k=1,4 do
+		for i=1,dimensions.x do
+		for k=1,dimensions.y do
 			print(puzzle[i][k])
 		end
 		print("\n")
@@ -46,7 +48,7 @@ function love.load(arg)
 	defaultimg = love.graphics.newImage("data/img/img.png")
 	maxdimension = math.min(love.graphics.getWidth(), love.graphics.getHeight())
 	puzzle = {}
-	for i=1, 4 do
+	for i=1, dimensions.x do
 		puzzle[i] = {1+4*(i-1),2+4*(i-1),3+4*(i-1),4+4*(i-1)}
 	end
 	puzzle[4][4] = 0
@@ -64,5 +66,12 @@ end
 function love.draw(dt)
 	--print((windowwidth-maxdimension)/2)
 	--print((windowheight-maxdimension)/2)
-	love.graphics.draw(defaultimg, (windowwidth-maxdimension)/2, (windowheight-maxdimension)/2, 0, maxdimension/defaultimg:getWidth(), maxdimension/defaultimg:getHeight())
+	--love.graphics.draw(defaultimg, (windowwidth-maxdimension)/2, (windowheight-maxdimension)/2, 0, maxdimension/defaultimg:getWidth(), maxdimension/defaultimg:getHeight())
+	offset = {x=(love.graphics.getWidth()-maxdimension)/2, y=(love.graphics.getHeight()-maxdimension)/2}
+	for i=1, dimensions.x do
+		for j=1, dimensions.y do
+			print(puzzle[i][j])
+			love.graphics.print(tostring(puzzle[i][j]),offset.x+j*(maxdimension/(dimensions.x+1)),offset.y+i*(maxdimension/(dimensions.y+1)))
+		end
+	end
 end
