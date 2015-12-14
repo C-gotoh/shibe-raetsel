@@ -95,8 +95,16 @@ end
 
 function shufflePuzzle(puzzle, iterations)
 	local puzzle = puzzle
+	local lastdirection = 0
+	local directions = {"left","right","up","down"}
+	local direction = 0
 	for i=1, iterations do
-		puzzle = updatePuzzle(puzzle, math.random(1,dimensions.x*dimensions.y))
+		while direction == lastdirection do
+				direction = directions[math.random(1,#directions)]
+		end
+		print(direction)
+		lastdirection = direction
+		puzzle = moveblank(puzzle, direction)
 	end
 	return puzzle
 end
@@ -210,7 +218,7 @@ function love.load(arg)
 	puzzle[dimensions.y][dimensions.x] = blankvalue
 	--init puzzle done
 	--printPuzzle(puzzle)
-	puzzle = shufflePuzzle(puzzle, 100)
+	puzzle = shufflePuzzle(puzzle, 10)
 	printPuzzle(puzzle)
 
 	solution = 0
