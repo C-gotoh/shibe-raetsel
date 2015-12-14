@@ -167,6 +167,7 @@ function solvePuzzle(puzzle)
 		--local path = frontier[#frontier]
 		--bfs:
 		local path = frontier[1]
+
 		local head = path[#path]
 
 		--print("Frontier")
@@ -204,6 +205,10 @@ function solvePuzzle(puzzle)
 	return 0
 end
 
+function heuristicCost(puzzle)
+	return 0
+end
+
 function love.load(arg)
 	defaultimg = love.graphics.newImage("data/img/img.png")
 	maxdimension = math.min(love.graphics.getWidth(), love.graphics.getHeight())
@@ -216,26 +221,12 @@ function love.load(arg)
 		end
 	end
 	puzzle[dimensions.y][dimensions.x] = blankvalue
+	perfectpuzzle = deepcopy(puzzle)
 	--init puzzle done
-	--printPuzzle(puzzle)
+
 	puzzle = shufflePuzzle(puzzle, 10)
-	printPuzzle(puzzle)
-
 	solution = 0
-
 	solution = solvePuzzle(puzzle)
-
-	--print(solution)
-	-- if solution ~= 0 then
-	-- 	for _,v in pairs(solution) do
-	-- 		if v ~= nil then
-	-- 			printPuzzle(v)
-	-- 		end
-	-- 	end
-	-- end
-	--test = updatePuzzle(puzzle,12)
-	--puzzle = test
-	--print(isEndCondition(test))
 
 end
 
@@ -265,7 +256,6 @@ function love.draw(dt)
 	offset = {x=(love.graphics.getWidth()-maxdimension)/2, y=(love.graphics.getHeight()-maxdimension)/2}
 	for i=1, dimensions.y do
 		for j=1, dimensions.x do
-			--print(puzzle[i][j])
 			love.graphics.print(tostring(puzzle[i][j]),offset.x+j*(maxdimension/(dimensions.x+1)),offset.y+i*(maxdimension/(dimensions.y+1)),0,2,2)
 		end
 	end
