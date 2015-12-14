@@ -76,12 +76,19 @@ function deepcopy(orig)
     return copy
 end
 
+function printPath(path)
+	for i=1,#path do
+		printPuzzle(path[i])
+	end
+end
+
 function printPuzzle(puzzle)
 	for i=1,dimensions.y do
+		local line = ""
 		for j=1,dimensions.x do
-			print(puzzle[i][j])
+			line = line .. " " .. puzzle[i][j]
 		end
-		print("\n")
+		print(line)
 	end
 	print("-----")
 end
@@ -150,31 +157,33 @@ function solvePuzzle(puzzle)
 	while frontier[#frontier] ~= nil do
 		local path = frontier[#frontier]
 		local head = path[#path]
-		print("star")
+		--print("Frontier")
 		--print(visited)
-		for k,v in pairs(frontier) do
-			print(k)
-			printPuzzle(v)
-		end
+		-- for k,v in pairs(frontier) do
+		-- 	print("key")
+		-- 	print(k)
+		-- 	print("path")
+		-- 	printPath(v)
+		-- end
 		table.remove(frontier,#frontier)
 		if not isMember(head,visited) then
 			table.insert(visited,head)
 			--printPuzzle(head)
 			if isEndCondition(head) then
-				print("wtf")
+				--print("wtf")
 				return path
 			end
 			for _,neighbor in pairs(getNeighbors(head)) do
 				--printPuzzle(neighbor)
 				local newpath = deepcopy(path)
-				table.insert(newpath,head)
+				table.insert(newpath,neighbor)
 				table.insert(frontier,newpath)
 				--print(newpath)
 				--print(#frontier)
 			end
 		end
 	end
-	print(#frontier)
+	--print(#frontier)
 	return 0
 end
 
@@ -192,16 +201,41 @@ function love.load(arg)
 	puzzle[dimensions.y][dimensions.x] = blankvalue
 	--init puzzle done
 	puzzle = updatePuzzle(puzzle,12)
-	--puzzle = shufflePuzzle(puzzle, 10)
-	--solution = solvePuzzle(puzzle)
+	puzzle = updatePuzzle(puzzle,8)
+	--puzzle = updatePuzzle(puzzle,7)
+	--printPuzzle(puzzle)
+	--puzzle = shufflePuzzle(puzzle, 100)
+	printPuzzle(puzzle)
+
+	solution = 0
+
+	solution = solvePuzzle(puzzle)
+
 	--print(solution)
-	--for _,v in pairs(solution) do
-	--	printPuzzle(v)
-	--end
+	-- if solution ~= 0 then
+	-- 	for _,v in pairs(solution) do
+	-- 		if v ~= nil then
+	-- 			printPuzzle(v)
+	-- 		end
+	-- 	end
+	-- end
 	--test = updatePuzzle(puzzle,12)
 	--puzzle = test
 	--print(isEndCondition(test))
 
+end
+
+function love.mousereleased(x, y, button)
+	if solution ~= 0 then	
+		if solution[#solution] ~= nil then
+			puzzle = solution[1]
+			table.remove(solution,1)
+		else
+			print("done")
+		end
+	else
+		print("no solution")
+	end
 end
 
 function love.update(dt)
