@@ -155,8 +155,12 @@ function solvePuzzle(puzzle)
 	local frontier = {}
 	frontier[1] = {puzzle}
 	while frontier[#frontier] ~= nil do
-		local path = frontier[#frontier]
+		--dfs: 
+		--local path = frontier[#frontier]
+		--bfs:
+		local path = frontier[1]
 		local head = path[#path]
+
 		--print("Frontier")
 		--print(visited)
 		-- for k,v in pairs(frontier) do
@@ -165,7 +169,12 @@ function solvePuzzle(puzzle)
 		-- 	print("path")
 		-- 	printPath(v)
 		-- end
-		table.remove(frontier,#frontier)
+
+		--dfs: 
+		--table.remove(frontier,#frontier)
+		--bfs:
+		table.remove(frontier,1)
+
 		if not isMember(head,visited) then
 			table.insert(visited,head)
 			--printPuzzle(head)
@@ -200,11 +209,8 @@ function love.load(arg)
 	end
 	puzzle[dimensions.y][dimensions.x] = blankvalue
 	--init puzzle done
-	puzzle = updatePuzzle(puzzle,12)
-	puzzle = updatePuzzle(puzzle,8)
-	--puzzle = updatePuzzle(puzzle,7)
 	--printPuzzle(puzzle)
-	--puzzle = shufflePuzzle(puzzle, 100)
+	puzzle = shufflePuzzle(puzzle, 100)
 	printPuzzle(puzzle)
 
 	solution = 0
