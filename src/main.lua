@@ -1,5 +1,23 @@
+-- globals
 dimensions = {x=4,y=4}
+drawsize = 1
 blankvalue = 0
+
+-- start main logic functions
+
+function getPosition(puzzle, number)
+	numberindex = {}
+	for k,v in ipairs(puzzle) do
+		for s,w in ipairs(puzzle[k]) do
+			if w == number then
+				numberindex.x = s
+				numberindex.y = k
+				return numberindex
+			end
+		end
+	end
+	return numberindex
+end
 
 function updatePuzzle(puzzle, clickedNumber)
 	local puzzle = deepcopy(puzzle)
@@ -38,77 +56,6 @@ function isEndCondition(puzzle)
 	return isEnd
 end
 
-function getPosition(puzzle, number)
-	numberindex = {}
-	for k,v in ipairs(puzzle) do
-		for s,w in ipairs(puzzle[k]) do
-			if w == number then
-				numberindex.x = s
-				numberindex.y = k
-				return numberindex
-			end
-		end
-	end
-	return numberindex
-end
-
-function isMember(element, list)
-	for _,v in pairs(list) do
-		if v == element then
-			return true
-		end
-	end
-	return false
-end
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == 'table' then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else -- number, string, boolean, etc
-        copy = orig
-    end
-    return copy
-end
-
-function printPath(path)
-	for i=1,#path do
-		printPuzzle(path[i])
-	end
-end
-
-function printPuzzle(puzzle)
-	for i=1,dimensions.y do
-		local line = ""
-		for j=1,dimensions.x do
-			line = line .. " " .. puzzle[i][j]
-		end
-		print(line)
-	end
-	print("-----")
-end
-
-function shufflePuzzle(puzzle, iterations)
-	local puzzle = puzzle
-	local lastdirection = 0
-	local directions = {"left","right","up","down"}
-	local direction = 0
-	for i=1, iterations do
-		while direction == lastdirection do
-				direction = directions[math.random(1,#directions)]
-		end
-		print(direction)
-		lastdirection = direction
-		puzzle = moveblank(puzzle, direction)
-	end
-	return puzzle
-end
-
 function moveblank(puzzle, direction)
 	local adjecentnumber = 0
 	local changed = false
@@ -141,6 +88,69 @@ function moveblank(puzzle, direction)
 	end
 end
 
+function shufflePuzzle(puzzle, iterations)
+	local puzzle = puzzle
+	local lastdirection = 0
+	local directions = {"left","right","up","down"}
+	local direction = 0
+	for i=1, iterations do
+		while direction == lastdirection do
+				direction = directions[math.random(1,#directions)]
+		end
+		print(direction)
+		lastdirection = direction
+		puzzle = moveblank(puzzle, direction)
+	end
+	return puzzle
+end
+-- end main logic functions
+
+-- start helper functions
+function isMember(element, list)
+	for _,v in pairs(list) do
+		if v == element then
+			return true
+		end
+	end
+	return false
+end
+
+function deepcopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[deepcopy(orig_key)] = deepcopy(orig_value)
+        end
+        setmetatable(copy, deepcopy(getmetatable(orig)))
+    else -- number, string, boolean, etc
+        copy = orig
+    end
+    return copy
+end
+-- end helper functions
+
+-- start print functions
+function printPath(path)
+	for i=1,#path do
+		printPuzzle(path[i])
+	end
+end
+
+function printPuzzle(puzzle)
+	for i=1,dimensions.y do
+		local line = ""
+		for j=1,dimensions.x do
+			line = line .. " " .. puzzle[i][j]
+		end
+		print(line)
+	end
+	print("-----")
+end
+-- end print functions
+
+-- start search functions
 function getNeighbors(puzzle)
 	local neighborTable = {}
 	if moveblank(puzzle,"left") ~= puzzle then
@@ -208,7 +218,9 @@ end
 function heuristicCost(puzzle)
 	return 0
 end
+-- end search functions
 
+-- love functions
 function love.load(arg)
 	defaultimg = love.graphics.newImage("data/img/img.png")
 	maxdimension = math.min(love.graphics.getWidth(), love.graphics.getHeight())
@@ -227,6 +239,8 @@ function love.load(arg)
 	puzzle = shufflePuzzle(puzzle, 10)
 	solution = 0
 	solution = solvePuzzle(puzzle)
+
+    love.graphics.setNewFont(maxdimension/((math.min(dimensions.x,dimensions.y)+1)*2))
 
 end
 
@@ -251,13 +265,13 @@ end
 
 function love.draw(dt)
 	love.graphics.setBackgroundColor{240,240,50}
+	love.graphics.setColor(200,200,200)
 	love.graphics.draw(defaultimg, (windowwidth-maxdimension)/2, (windowheight-maxdimension)/2, 0, maxdimension/defaultimg:getWidth(), maxdimension/defaultimg:getHeight())
-	love.graphics.setColor(0,0,0)
+	love.graphics.setColor(255,255,255)
 	offset = {x=(love.graphics.getWidth()-maxdimension)/2, y=(love.graphics.getHeight()-maxdimension)/2}
 	for i=1, dimensions.y do
 		for j=1, dimensions.x do
-			love.graphics.print(tostring(puzzle[i][j]),offset.x+j*(maxdimension/(dimensions.x+1)),offset.y+i*(maxdimension/(dimensions.y+1)),0,2,2)
+			love.graphics.print(tostring(puzzle[i][j]),offset.x+j*(maxdimension/(dimensions.x+1)),offset.y+i*(maxdimension/(dimensions.y+1)),0,drawsize,drawsize)
 		end
 	end
-	love.graphics.setColor(255,255,255)
 end
