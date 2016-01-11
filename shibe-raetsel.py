@@ -10,6 +10,7 @@ from queue import LifoQueue, Queue, PriorityQueue
 import sys
 import numpy as np ## INSTALL
 from copy import deepcopy
+from random import randint
 
 
 # Globals
@@ -36,6 +37,18 @@ def printPuzzle(puzzle):
             line = line + " " + str(puzzle[i][j])
         print(line)
     print("-----")
+
+def shufflePuzzle(puzzle, iterations):
+    lastdirection = 0
+    directions = ["left","right","up","down"]
+    direction = 0
+    for i in range(iterations):
+        while direction == lastdirection:
+                direction = directions[randint(0,len(directions)-1)]
+        print(direction)
+        lastdirection = direction
+        puzzle = moveblank(puzzle, direction)
+    return puzzle
 
 def heuristicCost(puzzle):
     # TODO
@@ -151,7 +164,7 @@ window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
 maxdimension = min(window.width,window.height)
 
 bgimg = None
-#bgimg = pyglet.resource.image('data/img/img.png')
+bgimg = pyglet.resource.image('data/img/img.png')
 
 pyglet.gl.glClearColor(0.1,0.1,0.1,1)
 
@@ -169,13 +182,13 @@ endpuzzle = deepcopy(puzzle)
 
 print(getPosition(puzzle,1))
 
-puzzle = moveblank(puzzle,"left")
+puzzle = shufflePuzzle(puzzle,10)
 printPuzzle(puzzle)
 printPuzzle(endpuzzle)
 
-puzzle = genericSearch([puzzle],[endpuzzle])[0][-1]
+solution = genericSearch([puzzle],[endpuzzle])[0]
 
-printPuzzle(puzzle)
+#printPuzzle(puzzle)
 
 
 @window.event
@@ -184,20 +197,24 @@ def on_resize(width, height):
     maxdimension = min(width,height)
     print('The window was resized to %dx%d' % (width, height))
 
+    bgimg.width = maxdimension
+    bgimg.height = maxdimension
+
 @window.event
 def on_draw():
     window.clear()
 
     offsetx, offsety = ((window.width-maxdimension)/2, (window.height-maxdimension)/2)
+
+    if bgimg != None:
+        bgimg.blit(offsetx,offsety)
+
     for i in range(Dim.y.value):
         for j in range(Dim.x.value):
             number = pyglet.text.Label(str(puzzle[i][j]), font_size=20, x=offsetx+(j+1)*(maxdimension/(Dim.x.value+1)), y=offsety+(i+1)*(maxdimension/(Dim.y.value+1)),
                 anchor_x='center', anchor_y='center')
             number.draw()
-            #love.graphics.print(tostring(puzzle[i][j]),offset.x+j*(maxdimension/(dimensions.x+1)),offset.y+i*(maxdimension/(dimensions.y+1)),0,drawsize,drawsize)
 
-    if bgimg != None:
-    	bgimg.blit(0, 0)
     label = pyglet.text.Label('15-Puzzle', font_name='Times New Roman', font_size=36, 
 	x=window.width//2, y=window.height//2, anchor_x='center', anchor_y='center')
     label.draw()
@@ -211,9 +228,12 @@ def on_key_press(symbol, modifiers):
 
 @window.event
 def on_mouse_press(x, y, button, modifiers):
+    global puzzle
     if button == mouse.LEFT:
-        print('The left mouse button was pressed.')
-        print(maxdimension)
+        if len(solution) != 0:
+            puzzle = solution.pop(0)
+        else:
+            print("done")
 
 
 pyglet.app.run()
