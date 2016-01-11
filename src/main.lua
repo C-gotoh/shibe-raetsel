@@ -222,7 +222,7 @@ end
 
 -- love functions
 function love.load(arg)
-	defaultimg = love.graphics.newImage("data/img/img.png")
+	--defaultimg = love.graphics.newImage("data/img/img.png")
 	maxdimension = math.min(love.graphics.getWidth(), love.graphics.getHeight())
 	--init puzzle here
 	puzzle = {}
@@ -264,9 +264,11 @@ function love.update(dt)
 end
 
 function love.draw(dt)
-	love.graphics.setBackgroundColor{240,240,50}
+	love.graphics.setBackgroundColor{50,50,50}
 	love.graphics.setColor(200,200,200)
-	love.graphics.draw(defaultimg, (windowwidth-maxdimension)/2, (windowheight-maxdimension)/2, 0, maxdimension/defaultimg:getWidth(), maxdimension/defaultimg:getHeight())
+	if defaultimg then
+		love.graphics.draw(defaultimg, (windowwidth-maxdimension)/2, (windowheight-maxdimension)/2, 0, maxdimension/defaultimg:getWidth(), maxdimension/defaultimg:getHeight())
+	end
 	love.graphics.setColor(255,255,255)
 	offset = {x=(love.graphics.getWidth()-maxdimension)/2, y=(love.graphics.getHeight()-maxdimension)/2}
 	for i=1, dimensions.y do
