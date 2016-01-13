@@ -11,6 +11,7 @@ import sys
 import numpy as np ## INSTALL
 from copy import deepcopy
 from random import randint
+from timeit import default_timer as timer
 
 
 # Globals
@@ -21,7 +22,11 @@ class Dim(Enum):
 # global to be able to write in event functions
 global maxdimension
 global puzzle
+global solution
 global dimensions
+global steps
+
+steps = 40  # number of steps to shuffle puzzle (!= len(solution))
 
 dimensions = (4,4)
 
@@ -45,14 +50,16 @@ def shufflePuzzle(puzzle, iterations):
     for i in range(iterations):
         while direction == lastdirection:
                 direction = directions[randint(0,len(directions)-1)]
-        print(direction)
         lastdirection = direction
         puzzle = moveblank(puzzle, direction)
     return puzzle
 
 def heuristicCost(puzzle):
-    # TODO
-    return 0
+    cost = 0
+    for y in range(dimensions[1]):
+        for x in range(dimensions[0]):
+            puzzle[y][x]
+    return cost
 
 
 def getPosition(puzzle, number):
@@ -164,7 +171,7 @@ window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
 maxdimension = min(window.width,window.height)
 
 bgimg = None
-bgimg = pyglet.resource.image('data/img/img.png')
+#bgimg = pyglet.resource.image('data/img/img.png')
 
 pyglet.gl.glClearColor(0.1,0.1,0.1,1)
 
@@ -180,13 +187,13 @@ puzzle[Dim.y.value-1][Dim.x.value-1] = blankvalue
 
 endpuzzle = deepcopy(puzzle)
 
-print(getPosition(puzzle,1))
+solution = []
 
-puzzle = shufflePuzzle(puzzle,10)
-printPuzzle(puzzle)
-printPuzzle(endpuzzle)
+#puzzle = shufflePuzzle(puzzle,steps)
+#printPuzzle(puzzle)
+#printPuzzle(endpuzzle)
 
-solution = genericSearch([puzzle],[endpuzzle])[0]
+#solution = genericSearch([puzzle],[endpuzzle])[0]
 
 #printPuzzle(puzzle)
 
@@ -196,9 +203,9 @@ def on_resize(width, height):
     global maxdimension
     maxdimension = min(width,height)
     print('The window was resized to %dx%d' % (width, height))
-
-    bgimg.width = maxdimension
-    bgimg.height = maxdimension
+    if bgimg != None:
+        bgimg.width = maxdimension
+        bgimg.height = maxdimension
 
 @window.event
 def on_draw():
@@ -221,10 +228,30 @@ def on_draw():
 
 @window.event
 def on_key_press(symbol, modifiers):
-    if symbol == key.LEFT:
-        print('The left arrow key was pressed.')
-    elif symbol == key.ENTER:
-        print('The enter key was pressed.')
+    global solution
+    global puzzle
+    global steps
+
+    if symbol == key.R:     # randomize puzzle
+        if len(solution) == 0:
+            puzzle = shufflePuzzle(puzzle,steps)
+            print("Built puzzle with",steps,"random moves.")
+            print("searching...")
+            tstart = timer()
+            solution = genericSearch([puzzle],[endpuzzle])[0]
+            tend = timer()
+            elapsed_time = tend - tstart
+            print("search complete, number of steps: ",len(solution),
+                ". time to complete: ", elapsed_time, "s.")
+    elif symbol == key.ENTER:   # step to solution
+        if len(solution) != 0:
+            puzzle = solution.pop()
+            solution = []
+    elif symbol == key.SPACE:
+        if len(solution) != 0:
+            puzzle = solution.pop(0)
+        else:
+            print("done")
 
 @window.event
 def on_mouse_press(x, y, button, modifiers):
