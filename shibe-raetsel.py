@@ -28,7 +28,7 @@ global steps
 
 steps = 40  # number of steps to shuffle puzzle (!= len(solution))
 
-dimensions = (4,4)
+dimensions = (Dim.x.value,Dim.y.value)
 
 drawsize = 1
 blankvalue = 0
@@ -36,10 +36,10 @@ blankvalue = 0
 # Functions
 
 def printPuzzle(puzzle):
-    for i in range(Dim.y.value):
+    for y in range(Dim.y.value):
         line = ""
-        for j in range(Dim.x.value):
-            line = line + " " + str(puzzle[i][j])
+        for x in range(Dim.x.value):
+            line = line + " " + str(puzzle[y][x])
         print(line)
     print("-----")
 
@@ -54,21 +54,36 @@ def shufflePuzzle(puzzle, iterations):
         puzzle = moveblank(puzzle, direction)
     return puzzle
 
+def getPosition(puzzle, number):
+    numberindex = []
+    for y in range(Dim.y.value):
+        for x in range(Dim.x.value):
+            if puzzle[y][x] == number:
+                #print(str(x) + str(y) + str(puzzle[y][x]) + str(number))
+                return (x,y)
+    return numberindex
+
 def heuristicCost(puzzle):
     cost = 0
     for y in range(dimensions[1]):
         for x in range(dimensions[0]):
-            puzzle[y][x]
+            expectednumber = y*Dim.x.value+x+1
+            if expectednumber == Dim.x.value*Dim.y.value:
+                #expectednumber = 0
+                continue
+            actualposition = getPosition(puzzle,expectednumber)
+            manhattanDist = abs(x - actualposition[0]) + abs(y - actualposition[1])
+            cost += manhattanDist
+            print("expected: " + str(expectednumber))
+            print("pos: " + str(x) + str(y) + " pos of exp: " + str(actualposition[0]) + str(actualposition[1]))
+            print("cumulated cost: " + str(cost))
+            #Linear Conflict for columns (x): add 2 for each conflict
+            if y == 0 and manhattanDist > 0:
+
+                cost += 0
+        #Linear Conflict for rows (y): add 2 for each conflict
+        cost += 0
     return cost
-
-
-def getPosition(puzzle, number):
-    for k,v in puzzle.items():
-        for s,w in puzzle[k].items():
-            if w == number:
-                #(x,y)
-                return (s,k)
-    return []
 
 def updatePuzzle(puzzle, clickedNumber):
     #TODO: check if working as intended (copying subdictionarys)
@@ -233,16 +248,18 @@ def on_key_press(symbol, modifiers):
     global steps
 
     if symbol == key.R:     # randomize puzzle
-        if len(solution) == 0:
-            puzzle = shufflePuzzle(puzzle,steps)
-            print("Built puzzle with",steps,"random moves.")
-            print("searching...")
-            tstart = timer()
-            solution = genericSearch([puzzle],[endpuzzle])[0]
-            tend = timer()
-            elapsed_time = tend - tstart
-            print("search complete, number of steps: ",len(solution),
-                ". time to complete: ", elapsed_time, "s.")
+        if len(solution) != 0:
+            puzzle = solution.pop()
+            solution = []
+        puzzle = shufflePuzzle(puzzle,steps)
+        print("Built puzzle with",steps,"random moves.")
+        print("searching...")
+        tstart = timer()
+        solution = genericSearch([puzzle],[endpuzzle])[0]
+        tend = timer()
+        elapsed_time = tend - tstart
+        print("search complete, number of steps: ",len(solution)-1,
+            ". time to complete: ", elapsed_time, "s.")
     elif symbol == key.ENTER:   # step to solution
         if len(solution) != 0:
             puzzle = solution.pop()
@@ -252,15 +269,13 @@ def on_key_press(symbol, modifiers):
             puzzle = solution.pop(0)
         else:
             print("done")
+    elif symbol == key.C:
+        print("Absolute cost: " + str(heuristicCost(puzzle)))
 
 @window.event
 def on_mouse_press(x, y, button, modifiers):
     global puzzle
     if button == mouse.LEFT:
-        if len(solution) != 0:
-            puzzle = solution.pop(0)
-        else:
-            print("done")
-
+        print("mouse")
 
 pyglet.app.run()
