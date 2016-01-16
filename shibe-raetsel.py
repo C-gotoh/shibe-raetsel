@@ -124,7 +124,7 @@ def heuristicA(path,dim):
 def getStatePosition(state, dim, element):
     return state.index(element) % dim[0] , state.index(element) // dim[0]
 
-def heuristicCost(path, dim):
+def heuristicCostManhattan(path, dim):
     state = path[-1]
 
     cost = 0
@@ -148,7 +148,7 @@ def heuristicCost(path, dim):
         cost += 0
 
 # heuristic function: Toorac = tiles out of row and column
-def heuristicCostToorac(path):
+def heuristicCostToorac(path,dim):
     puzzle = path[-1]
     cost = 0
     cols = []
@@ -171,7 +171,7 @@ def heuristicCostToorac(path):
     return cost
 
 # heuristic funktion: Mpt = Misplaced Tiles
-def heuristicCostMpt(path):
+def heuristicCostMpt(path,dim):
     puzzle = path[-1]
     cost = 0
     cols = []
@@ -190,7 +190,7 @@ def heuristicCostMpt(path):
 
 
 # heuristic funktion: X-Y
-def heuristicCostYX(path):
+def heuristicCostYX(path,dim):
     puzzle = path[-1]
     cost = 0
     cols = []
@@ -327,9 +327,9 @@ def getHint(puzzle):
         if len(solution) != 0:
             printPuzzle(solution[1])
 
-currentHeuristic = heuristicCost
+currentHeuristic = heuristicCostManhattan
 
-heuristics = [heuristicCost,heuristicA]
+heuristics = [heuristicCostManhattan,heuristicA,heuristicCostYX,heuristicCostMpt]
 
 # puzzle = shufflePuzzle(puzzle,steps)
 # printPuzzle(puzzle)
