@@ -35,6 +35,8 @@ global dimensions
 global steps
 global solved
 global limit
+global currentHeuristic
+global heuristics
 
 
 # Performance Data
@@ -95,6 +97,9 @@ def getPosition(puzzle, number):
     return numberindex
 
 
+def heuristicA(path):
+    return 0
+
 def heuristicCost(path):
     puzzle = path[-1]
     cost = 0
@@ -135,7 +140,7 @@ def isSolveAble(puzzle):
         for other in plist:
             if (plist.index(num) < plist.index(other)) and (other < num):
                 inversions += 1
-    blankrow = getPosition(puzzle, 0)[1]
+    blankrow = dimensions[1] - getPosition(puzzle, 0)[1]
     print("blankrow: " + str(blankrow))
     print("inversions: " + str(inversions))
     if (Dim.x.value % 2) != 0:
@@ -325,6 +330,11 @@ endpuzzle = deepcopy(puzzle)
 
 solution = []
 
+currentHeuristic = heuristicCost
+
+heuristics = [heuristicCost,heuristicA]
+
+
 # puzzle = shufflePuzzle(puzzle,steps)
 # printPuzzle(puzzle)
 # printPuzzle(endpuzzle)
@@ -346,17 +356,19 @@ def on_resize(width, height):
 
 @window.event
 def on_draw():
-    window.clear()
-
     global puzzle
     global endpuzzle
     global solved
+    global currentHeuristic
 
     if puzzle == endpuzzle:
         solved = True
-
+        pyglet.gl.glClearColor(0.1, 0.3, 0.1, 1)
+    else:
+        pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
     offsetx, offsety = ((window.width-maxdimension)/2,
                         (window.height-maxdimension)/2)
+    window.clear()
 
     if bgimg is not None:
         bgimg.blit(offsetx, offsety)
@@ -371,24 +383,51 @@ def on_draw():
                     anchor_x='center', anchor_y='center')
                 number.draw()
 
-    if solved:
-        labelstring = "SOLVED"
-    else:
-        labelstring = ''
+    #if solved:
+    #    labelstring = "SOLVED"
+    #else:
+    #    labelstring = ''
 
-    label = pyglet.text.Label(labelstring, font_name='Times New Roman',
-                              font_size=font_large, x=window.width//2,
-                              y=window.height-36, anchor_x='center',
-                              anchor_y='center')
-    label.draw()
+    #label = pyglet.text.Label(labelstring, font_name='Times New Roman',
+    #                          font_size=font_large, x=window.width//2,
+    #                          y=window.height-font_large*3, anchor_x='center',
+    #                          anchor_y='center')
+    #label.draw()
 
-    controls = ["Arrowkeys to move tiles",
+    heuristicDialog = []
+    for heu in heuristics:
+        heuristicDialog.append(str(heu))
+
+    pyglet.text.Label("Current heuristic function: ", font_name='Times New Roman',
+                          font_size=font_small, x=16,
+                          y=window.height-font_large,
+                          anchor_x='left', anchor_y='center').draw() 
+    
+    for i in range(len(heuristics)):
+        if currentHeuristic == heuristics[i]:
+            pyglet.text.Label("* " + str(heuristics[i]), font_name='Times New Roman',
+                          font_size=font_small, x=16,
+                          y=window.height-font_large-(len(heuristics)+1-i)*round(1.5*font_small),
+                          anchor_x='left', anchor_y='center').draw()    
+        else:
+            pyglet.text.Label("  " + str(heuristics[i]), font_name='Times New Roman',
+                          font_size=font_small, x=16,
+                          y=window.height-font_large-(len(heuristics)+1-i)*round(1.5*font_small),
+                          anchor_x='left', anchor_y='center').draw()
+    pyglet.text.Label("  " + str(currentHeuristic([puzzle])), font_name='Times New Roman',
+                          font_size=font_small, x=window.width - font_large,
+                          y=window.height-font_large-(len(heuristics)+1-i)*round(1.5*font_small),
+                          anchor_x='left', anchor_y='center').draw()
+
+    controls = ["Controls: ",
+                "Arrowkeys to move tiles",
                 "'b' - search BFS",
                 "'a' - search A*",
                 "'r' - generate random puzzle",
                 "'ENTER' - reset puzzle",
                 "'SPACE' - step through solution",
                 "'c' - display current heuristic cost",
+                "'e' - change heuristic function",
                 "'h' - get a hint for next move"]
     for i in range(len(controls)):
         pyglet.text.Label(controls[i], font_name='Times New Roman',
@@ -403,6 +442,8 @@ def on_key_press(symbol, modifiers):
     global solution
     global puzzle
     global steps
+    global currentHeuristic
+    global heuristics
 
     if symbol == key.B:     # randomize puzzle
         tstart = timer()
@@ -435,7 +476,7 @@ def on_key_press(symbol, modifiers):
         else:
             print("done")
     elif symbol == key.C:
-        print("Absolute cost: " + str(heuristicCost([puzzle])))
+        print("Absolute cost: " + str(currentHeuristic([puzzle])))
     elif symbol == key.H:
         getHint(puzzle)
     elif symbol == key.LEFT:
@@ -451,6 +492,8 @@ def on_key_press(symbol, modifiers):
         #puzzle = shufflePuzzle(puzzle, steps)
         puzzle = getRandomPuzzle()
         print("Built random puzzle")
+    elif symbol == key.E:
+        currentHeuristic = heuristics[(heuristics.index(currentHeuristic)+1)%len(heuristics)]
 
 
 @window.event
