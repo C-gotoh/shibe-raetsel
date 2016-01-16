@@ -316,9 +316,10 @@ def on_draw():
     label.draw()
 
     controls = ["Arrowkeys to move tiles",
-                "'b' - shuffle and BFS",
-                "'a' - randomize and A*",
-                "'ENTER' - go to solution",
+                "'b' - search BFS",
+                "'a' - search A*",
+                "'r' - generate random puzzle",
+                "'ENTER' - reset puzzle",
                 "'SPACE' - step through solution",
                 "'c' - display current heuristic cost",
                 "'h' - get a hint for next move"]
@@ -340,11 +341,9 @@ def on_key_press(symbol, modifiers):
 
     neighbors = getNeighborStates(puzzle.getState())
 
-    if symbol == key.B:     # randomize puzzle
-        if len(solution) != 0:
-            solution = []
+    if symbol == key.B:
+        solution = []
         puzzle.randomize()
-
         tstart = timer()
         solution = genericSearch([puzzle.getState()],
                                  [puzzle.getSolvedState()])[0]
@@ -354,12 +353,7 @@ def on_key_press(symbol, modifiers):
               ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.A:
-        if len(solution) != 0:
-            puzzle = solution.pop()
-            solution = []
         # puzzle = shufflePuzzle(puzzle,steps)
-        puzzle = getRandomPuzzle()
-        print("Built complete random puzzle")
         print("searching...")
         tstart = timer()
         solution = genericSearch([puzzle], [endpuzzle],
@@ -373,20 +367,20 @@ def on_key_press(symbol, modifiers):
                   ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.ENTER:   # step to solution
-        if len(solution) != 0:
-            solution = []
-        puzzle = deepcopy(endpuzzle)
+        solution = []
+        puzzle.setSolved()
+
     elif symbol == key.SPACE:
         if len(solution) != 0:
-            puzzle = solution.pop(0)
+            puzzle.update(solution.pop(0))
         else:
             print("done")
 
     elif symbol == key.C:
-        print("Absolute cost: " + str(heuristicCost([puzzle])))
+        print("Absolute cost: " + str(heuristicCost([puzzle.getState()])))
 
     elif symbol == key.H:
-        getHint(puzzle)
+        getHint(puzzle.getState())
 
     elif symbol == key.LEFT:
         if neighbors[1] is not None:
