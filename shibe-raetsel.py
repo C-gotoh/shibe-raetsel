@@ -94,8 +94,8 @@ def getPosition(puzzle, number):
                 return (x, y)
     return numberindex
 
-
-def heuristicCost(path):
+# heuristic funktion: Manhattan Distanz
+def heuristicCostMannahtan(path):
     puzzle = path[-1]
     cost = 0
     for y in range(dimensions[1]):
@@ -117,6 +117,68 @@ def heuristicCost(path):
                 cost += 0
         # Linear Conflict for rows (y): add 2 for each conflict
         cost += 0
+
+# heuristic function: Toorac = tiles out of row and column
+def heuristicCostToorac(path):
+    puzzle = path[-1]
+    cost = 0
+    cols = []
+    for x in range(dimensions[0]):
+        for y in range(dimensions[1]):
+            cols.append([])
+            cols[x].append(puzzle[y][x])
+    for y in range(dimensions[1]):
+        for x in range(dimensions[0]):
+            expectedNumber = x + y * dimensions[0] +1
+            if expectedNumber == 16:
+                continue
+            if not expectedNumber in puzzle[y]:
+                cost += 1
+                print("wrong row: " + str(expectedNumber))
+                print(puzzle[y])
+            if not expectedNumber in cols[x]:
+                cost += 1
+                print("wrong col: " + str(expectedNumber))
+    return cost
+
+# heuristic funktion: Mpt = Misplaced Tiles
+def heuristicCostMpt(path):
+    puzzle = path[-1]
+    cost = 0
+    cols = []
+    for x in range(dimensions[0]):
+        for y in range(dimensions[1]):
+            expectedNumber = x + y * dimensions[0] + 1
+            if expectedNumber == 16:
+                continue
+            actualnumber = puzzle[y][x]
+            if expectedNumber != actualnumber:
+                cost += 1
+    return cost
+
+
+#---------------------------------------------------------------------------------------------------------------------------------
+
+
+# heuristic funktion: X-Y
+def heuristicCostYX(path):
+    puzzle = path[-1]
+    cost = 0
+    cols = []
+    for x in range(dimensions[0]):
+        for y in range(dimensions[1]):
+            expectedNumber = x + y * dimensions[0] + 1
+            if expectedNumber == 16:
+                continue
+            actualnumber = puzzle[y][x]
+            if expectedNumber != actualnumber:
+                cost += 1
+    return cost
+
+
+
+
+#---------------------------------------------------------------------------------------------------------------------------------
 
     global heuristic_calls
     heuristic_calls += 1
@@ -446,7 +508,7 @@ def on_key_press(symbol, modifiers):
         else:
             print("done")
     elif symbol == key.C:
-        print("Absolute cost: " + str(heuristicCost([puzzle])))
+        print("Absolute cost: " + str(heuristicCostMpt([puzzle])))
     elif symbol == key.H:
         getHint(puzzle)
     elif symbol == key.LEFT:
