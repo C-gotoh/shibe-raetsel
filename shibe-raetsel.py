@@ -421,7 +421,7 @@ def on_key_press(symbol, modifiers):
         print("Absolute cost: " + str(currentHeuristic([puzzle.getState()]),puzzle.dim))
 
     elif symbol == key.H:
-        getHint(puzzle.getState())
+        getHint(puzzle)
 
     elif symbol == key.R:
         puzzle.randomize()
