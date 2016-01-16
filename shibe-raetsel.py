@@ -22,7 +22,7 @@ def MyPriorityQueue(PriorityQueue):
 
 class Dim(Enum):
 	x = 4
-	y = 4
+	y = 2
 
 # Globals
 global maxdimension
@@ -392,8 +392,9 @@ def on_key_press(symbol, modifiers):
         solution = genericSearch([puzzle],[endpuzzle],_dataStructure=PriorityQueue,_heuristic=True)[0]
         tend = timer()
         elapsed_time = tend - tstart
-        print("search complete, number of steps: ",len(solution)-1,
-            ". time to complete: ", elapsed_time, "s.")
+        if solution != 0:
+            print("search complete, number of steps: ",len(solution)-1,
+                ". time to complete: ", elapsed_time, "s.")
     elif symbol == key.ENTER:   # step to solution
         if len(solution) != 0:
             solution = []
