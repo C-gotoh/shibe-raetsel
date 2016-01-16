@@ -352,13 +352,14 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                 print("Heuristic calls: " + str(heuristic_calls))
                 print("Visited nodes: " + str(len(visited)))
                 print("Max frontier: " + str(max_frontier_len))
+                print("Cur Distance: " + currentHeuristic(path, puzzle.dim))
             ####
             if head in endPosList:
                 return path, len(visited), max_frontier_len
-            for neighbor in getNeighborStates(head,puzzle.dim):
+            for neighbor in getNeighborStates(head, puzzle.dim):
                 if neighbor is None:
                     continue
-                new_path = [n for n in path]
+                new_path = path[:]
                 new_path.append(neighbor)
                 if _debug:
                     debug(space, new_path)
