@@ -21,23 +21,17 @@ def MyPriorityQueue(PriorityQueue):
     def get(self):
         return super().get()[-1]
 
+global window, maxdimension, bgimg, puzzle, solution,currentHeuristic,heuristics
 
-class Dim(Enum):
-    x = 4
-    y = 4
+# pyglet init
+window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
 
+maxdimension = min(window.width, window.height)
 
-# Globals
-global maxdimension
-global puzzle
-global solutions
-global dimensions
-global steps
-global solved
-global limit
-global currentHeuristic
-global heuristics
+bgimg = None
+# bgimg = pyglet.resource.image('data/img/img.png')
 
+pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
 
 # Performance Data
 added_nodes = 0
@@ -45,71 +39,101 @@ closed_nodes = 0
 omitted_nodes = 0
 heuristic_calls = 0
 
-
-# global values
-solved = True
-limit = 81  # maximum heuristicCost of new random Puzzle ( <= len(solution))
-steps = 20  # number of steps to shuffle puzzle ( >= len(solution))
-
-
 # ui
 font_large = 32
 font_small = 14
 font_number = 20
 
-dimensions = (Dim.x.value, Dim.y.value)
-
-drawsize = 1
-blankvalue = 0
-
-
 # Functions
 
 
-def printPuzzle(puzzle):
-    for y in range(Dim.y.value):
-        line = ""
-        for x in range(Dim.x.value):
-            line = line + " " + str(puzzle[y][x])
-        print(line)
-    print("-----")
+class Puzzle(object):
+    def __init__(self, dimX, dimY):
+        self.dim = (dimX, dimY)
+        self.setSolved()
+
+    def randomize(self):
+        random.shuffle(self.field)
+
+    def setSolved(self):
+        self.field = self.getSolvedState()
+
+        self.solved = True
+        self.solvable = True
+
+    def getSolvedState(self):
+        solved = list(range(self.dim[0] * self.dim[1]))[1:]
+        solved.append(0)
+        return solved
+
+    def isSolved(self):
+        return self.solved
+
+    def isSolvable(self):
+        return self.solvable
+
+    def getPosition(self, element):
+        return self.field.index(element) % self.dim[0],\
+               self.field.index(element) // self.dim[0]
+
+    def getElement(self, x, y):
+        return self.field[y*self.dim[0] + x]
+
+    def getState(self):
+        return self.field[:]
+
+    def update(self, newfield):
+        self.field = newfield[:]
+
+        if self.field == self.getSolvedState():
+            self.solvable = True
+            self.solved = True
+        else:
+            self.solved = False
+
+            inversions = 0
+            print(self.field)
+            for num in self.field:
+                if num == 0:
+                    continue
+                for other in self.field:
+                    if other == 0:
+                        continue
+                    if (self.field.index(num) < self.field.index(other))\
+                        and (other < num):
+                        inversions += 1
+
+            if (self.dim[0] % 2) != 0:
+                self.solvable = (inversions % 2) == 0
+            else:
+                if ((self.dim[1] - self.getPosition(0)[1]) % 2) != 0:
+                    self.solvable = (inversions % 2) == 0
+                else:
+                    self.solvable = (inversions % 2) != 0
+        print(self.field)
 
 
-def shufflePuzzle(puzzle, iterations):
-    lastdirection = 0
-    directions = ["left", "right", "up", "down"]
-    direction = 0
-    for i in range(iterations):
-        while direction == lastdirection:
-                direction = directions[randint(0, len(directions)-1)]
-        lastdirection = direction
-        puzzle = moveblank(puzzle, direction)
-    return puzzle
+class Search(object):
+    def __init__(self, arg1, arg2):
+        print(arg1)
+        print(arg2)
 
-
-def getPosition(puzzle, number):
-    numberindex = []
-    for y in range(Dim.y.value):
-        for x in range(Dim.x.value):
-            if puzzle[y][x] == number:
-                # print(str(x) + str(y) + str(puzzle[y][x]) + str(number))
-                return (x, y)
-    return numberindex
-
-
-def heuristicA(path):
+def heuristicA(path,dim):
     return 0
 
-def heuristicCost(path):
-    puzzle = path[-1]
+def getStatePosition(state, dim, element):
+    return state.index(element) % dim[0] , state.index(element) // dim[0]
+
+def heuristicCost(path, dim):
+    state = path[-1]
     cost = 0
-    for y in range(dimensions[1]):
-        for x in range(dimensions[0]):
-            expectednumber = y*Dim.x.value+x+1
-            if expectednumber == Dim.x.value*Dim.y.value:
+    for y in range(dim[1]):
+        for x in range(dim[0]):
+            expectednumber = y * dim[0] + x + 1
+            if expectednumber == dim[0] * dim[1]:
                 # expectednumber = 0
                 continue
-            actualposition = getPosition(puzzle, expectednumber)
+            actualposition = getStatePosition(state, dim, expectednumber)
             manhattanDist = abs(x - actualposition[0])\
                 + abs(y - actualposition[1])
             cost += manhattanDist
@@ -118,121 +142,60 @@ def heuristicCost(path):
             # print("cumulated cost: " + str(cost))
             # Linear Conflict for columns (x): add 2 for each conflict
             if y == 0 and manhattanDist > 0:
-
                 cost += 0
         # Linear Conflict for rows (y): add 2 for each conflict
         cost += 0
 
     global heuristic_calls
     heuristic_calls += 1
+
     return len(path)-1 + cost
 
+def getNeighborStates(state, dim):
+    neighbors = []
+    izero = state.index(0)
 
-def isSolveAble(puzzle):
-    plist = []
-    # printPuzzle(puzzle)
-    for y in range(Dim.y.value):
-        for x in range(Dim.x.value):
-            plist.append(puzzle[y][x])
-    inversions = 0
-    plist.remove(0)
-    for num in plist:
-        for other in plist:
-            if (plist.index(num) < plist.index(other)) and (other < num):
-                inversions += 1
-    blankrow = dimensions[1] - getPosition(puzzle, 0)[1]
-    print("blankrow: " + str(blankrow))
-    print("inversions: " + str(inversions))
-    if (Dim.x.value % 2) != 0:
-        return (inversions % 2) == 0
+    # left:
+    iswap = izero - 1
+    if izero // dim[0] != iswap // dim[0]:
+        neighbors.append(None)
     else:
-        if ((Dim.y.value - blankrow) % 2) != 0:
-            return (inversions % 2) == 0
-        else:
-            return (inversions % 2) != 0
+        left = state[:]
+        left[izero] = left[iswap]
+        left[iswap] = 0
+        neighbors.append(left)
 
-
-def getRandomPuzzle():
-    while True:
-        numbers = list(range(Dim.x.value*Dim.y.value))
-        rndPuzzle = {}
-        for y in range(Dim.y.value):
-            rndPuzzle[y] = {}
-            for x in range(Dim.x.value):
-                num = random.choice(numbers)
-                rndPuzzle[y][x] = num
-                numbers.remove(num)
-        if isSolveAble(rndPuzzle) and (heuristicCost([rndPuzzle]) < limit):
-            print("heuristicCost: " + str(heuristicCost([rndPuzzle])))
-            return rndPuzzle
-
-
-def updatePuzzle(puzzle, clickedNumber):
-    puzzle = deepcopy(puzzle)
-    zeroindex = getPosition(puzzle, blankvalue)
-    clickedindex = getPosition(puzzle, clickedNumber)
-
-    if clickedindex[0] == zeroindex[0]:
-        diff = abs(clickedindex[1] - zeroindex[1])
-        if diff <= 1:
-                puzzle[clickedindex[1]][clickedindex[0]] = blankvalue
-                puzzle[zeroindex[1]][zeroindex[0]] = clickedNumber
-    if clickedindex[1] == zeroindex[1]:
-        diff = abs(clickedindex[0] - zeroindex[0])
-        if diff <= 1:
-                puzzle[clickedindex[1]][clickedindex[0]] = blankvalue
-                puzzle[zeroindex[1]][zeroindex[0]] = clickedNumber
-    return puzzle
-
-
-def moveblank(puzzle, direction):
-    adjacentnumber = 0
-    changed = False
-    zeroindex = getPosition(puzzle, blankvalue)
-    if direction == "left":
-        if zeroindex[0] > 0:
-            adjacentnumber = puzzle[zeroindex[1]][zeroindex[0]-1]
-            changed = True
-    elif direction == "right":
-        if zeroindex[0] < dimensions[0]-1:
-            adjacentnumber = puzzle[zeroindex[1]][zeroindex[0]+1]
-            changed = True
-    elif direction == "up":
-        if zeroindex[1] < dimensions[1]-1:
-            adjacentnumber = puzzle[zeroindex[1]+1][zeroindex[0]]
-            changed = True
-    elif direction == "down":
-        if zeroindex[1] > 0:
-            adjacentnumber = puzzle[zeroindex[1]-1][zeroindex[0]]
-            changed = True
-    if changed:
-        return updatePuzzle(puzzle, adjacentnumber)
+    # right:
+    iswap = izero + 1
+    if izero // dim[0] != iswap // dim[0]:
+        neighbors.append(None)
     else:
-        return puzzle
+        right = state[:]
+        right[izero] = right[iswap]
+        right[iswap] = 0
+        neighbors.append(right)
 
+    # up:
+    iswap = izero - dim[0]
+    if izero % dim[1] != iswap % dim[1] or iswap < 0:
+        neighbors.append(None)
+    else:
+        up = state[:]
+        up[izero] = up[iswap]
+        up[iswap] = 0
+        neighbors.append(up)
 
-def switchTile(puzzle, position):
-    # TODO implement
-    return puzzle
+    # down:
+    iswap = izero + dim[0]
+    if izero % dim[1] != iswap % dim[1] or iswap > len(state) - 1:
+        neighbors.append(None)
+    else:
+        down = state[:]
+        down[izero] = down[iswap]
+        down[iswap] = 0
+        neighbors.append(down)
 
-
-def getNeighbors(puzzle):
-    # TODO: optimize check, currently very slow
-    # TODO: use switchTile instead of moveblank
-    neighborTable = []
-    left, right, up, down = (moveblank(puzzle, "left"),
-                             moveblank(puzzle, "right"),
-                             moveblank(puzzle, "up"),
-                             moveblank(puzzle, "down"))
-    if left != puzzle:
-        neighborTable.append(left)
-    if right != puzzle:
-        neighborTable.append(right)
-    if up != puzzle:
-        neighborTable.append(up)
-    if down != puzzle:
-        neighborTable.append(down)
-    return neighborTable
+    return neighbors
 
 
 def genericSearch(startPosList, endPosList, _dataStructure=Queue,
@@ -242,7 +205,6 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
     max_frontier_len = 0
     ####
     global added_notes
-    added_nodes = 0 # Never used
     global heuristic_calls
     heuristic_calls = 0
     ####
@@ -290,50 +252,21 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
     return 0, len(visited), max_frontier_len
 
 
-def initPuzzle():
-    # Init puzzle
-    puzzle = {}
-    for i in range(Dim.y.value):
-        puzzle[i] = {}
-        for j in range(Dim.x.value):
-            puzzle[i][j] = (j+1+Dim.x.value*i)
-
-    puzzle[Dim.y.value-1][Dim.x.value-1] = blankvalue
-    return puzzle
-
-
 def getHint(puzzle):
     # TODO: print or display real hint instead of puzzle
     global solution
-    if puzzle == endpuzzle:
+    if puzzle.isSolved():
         print("hint: do nothing")
     else:
         print("calculating hint ...")
-        solution = genericSearch([puzzle], [endpuzzle])[0]
+        solution = genericSearch([puzzle.getState()],
+                                 [puzzle.getSolvedState])[0]
         if len(solution) != 0:
             printPuzzle(solution[1])
-
-
-# pyglet init
-window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
-
-maxdimension = min(window.width, window.height)
-
-bgimg = None
-# bgimg = pyglet.resource.image('data/img/img.png')
-
-pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
-
-puzzle = initPuzzle()
-
-endpuzzle = deepcopy(puzzle)
-
-solution = []
 
 currentHeuristic = heuristicCost
 
 heuristics = [heuristicCost,heuristicA]
-
 
 # puzzle = shufflePuzzle(puzzle,steps)
 # printPuzzle(puzzle)
@@ -357,12 +290,9 @@ def on_resize(width, height):
 @window.event
 def on_draw():
     global puzzle
-    global endpuzzle
-    global solved
     global currentHeuristic
 
-    if puzzle == endpuzzle:
-        solved = True
+    if puzzle.isSolved():
         pyglet.gl.glClearColor(0.1, 0.3, 0.1, 1)
     else:
         pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
@@ -373,14 +303,16 @@ def on_draw():
     if bgimg is not None:
         bgimg.blit(offsetx, offsety)
 
-    for i in range(Dim.y.value):
-        for j in range(Dim.x.value):
-            if puzzle[i][j] != 0:
+    for y in range(puzzle.dim[1]):
+        for x in range(puzzle.dim[0]):
+            if puzzle.getElement(x,y) is not 0:
                 number = pyglet.text.Label(
-                    str(puzzle[i][j]), font_size=font_number,
-                    x=offsetx+(j+1)*(maxdimension/(Dim.x.value+1)),
-                    y=offsety+(i+1)*(maxdimension/(Dim.y.value+1)),
-                    anchor_x='center', anchor_y='center')
+                    str(puzzle.getElement(x, y)),
+                    font_size=font_number,
+                    x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
+                    y=offsety+(y+1)*(maxdimension/(puzzle.dim[1]+1)),
+                    anchor_x='center',
+                    anchor_y='center')
                 number.draw()
 
     #if solved:
@@ -414,7 +346,7 @@ def on_draw():
                           font_size=font_small, x=16,
                           y=window.height-font_large-(len(heuristics)+1-i)*round(1.5*font_small),
                           anchor_x='left', anchor_y='center').draw()
-    pyglet.text.Label("  " + str(currentHeuristic([puzzle])), font_name='Times New Roman',
+    pyglet.text.Label("  " + str(currentHeuristic([puzzle.getState()],puzzle.dim)), font_name='Times New Roman',
                           font_size=font_small, x=window.width - font_large,
                           y=window.height-font_large-(len(heuristics)+1-i)*round(1.5*font_small),
                           anchor_x='left', anchor_y='center').draw()
@@ -430,33 +362,42 @@ def on_draw():
                 "'e' - change heuristic function",
                 "'h' - get a hint for next move"]
     for i in range(len(controls)):
-        pyglet.text.Label(controls[i], font_name='Times New Roman',
-                          font_size=font_small, x=16,
+        pyglet.text.Label(controls[i],
+                          font_name='Times New Roman',
+                          font_size=font_small,
+                          x=16,
                           y=(len(controls)+1-i)*round(1.5*font_small),
-                          anchor_x='left', anchor_y='center').draw()
-    solved = False
+                          anchor_x='left',
+                          anchor_y='center').draw()
 
 
 @window.event
 def on_key_press(symbol, modifiers):
     global solution
     global puzzle
-    global steps
     global currentHeuristic
     global heuristics
 
-    if symbol == key.B:     # randomize puzzle
+    neighbors = getNeighborStates(puzzle.getState(),puzzle.dim)
+
+    state = puzzle.getState()
+
+    if symbol == key.B:
+        solution = []
+        puzzle.randomize()
         tstart = timer()
-        solution = genericSearch([puzzle], [endpuzzle])[0]
+        solution = genericSearch([puzzle.getState()],
+                                 [puzzle.getSolvedState()])[0]
         tend = timer()
         elapsed_time = tend - tstart
         print("search complete, number of steps: ", len(solution)-1,
               ". time to complete: ", elapsed_time, "s.")
+
     elif symbol == key.A:
         # puzzle = shufflePuzzle(puzzle,steps)
         print("searching...")
         tstart = timer()
-        solution = genericSearch([puzzle], [endpuzzle],
+        solution = genericSearch([puzzle.getState()], [puzzle.getSolvedState()],
                                  _dataStructure=PriorityQueue,
                                  _heuristic=True)[0]
         tend = timer()
@@ -464,43 +405,55 @@ def on_key_press(symbol, modifiers):
 
         if solution != 0:
             print("search complete, number of steps: ",len(solution)-1,
-                ". time to complete: ", elapsed_time, "s.")
+                  ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.ENTER:   # step to solution
-        if len(solution) != 0:
-            solution = []
-        puzzle = deepcopy(endpuzzle)
+        solution = []
+        puzzle.setSolved()
+
     elif symbol == key.SPACE:
         if len(solution) != 0:
-            puzzle = solution.pop(0)
+            puzzle.update(solution.pop(0))
         else:
             print("done")
+
     elif symbol == key.C:
-        print("Absolute cost: " + str(currentHeuristic([puzzle])))
+        print("Absolute cost: " + str(currentHeuristic([puzzle.getState()]),puzzle.dim))
+
     elif symbol == key.H:
-        getHint(puzzle)
-    elif symbol == key.LEFT:
-        puzzle = moveblank(puzzle, "right")
-    elif symbol == key.RIGHT:
-        puzzle = moveblank(puzzle, "left")
-    elif symbol == key.UP:
-        puzzle = moveblank(puzzle, "down")
-    elif symbol == key.DOWN:
-        puzzle = moveblank(puzzle, "up")
+        getHint(puzzle.getState())
+
     elif symbol == key.R:
-        puzzle = deepcopy(endpuzzle)
-        #puzzle = shufflePuzzle(puzzle, steps)
-        puzzle = getRandomPuzzle()
+        puzzle.randomize()
         print("Built random puzzle")
+
     elif symbol == key.E:
         currentHeuristic = heuristics[(heuristics.index(currentHeuristic)+1)%len(heuristics)]
 
+    elif symbol == key.LEFT:
+        if neighbors[1] is not None:
+            state = neighbors[1]  # right
+            puzzle.update(state)
 
-@window.event
-def on_mouse_press(x, y, button, modifiers):
-    global puzzle
-    # if button == mouse.LEFT:
+    elif symbol == key.RIGHT:
+        if neighbors[0] is not None:
+            state = neighbors[0]  # left
+            puzzle.update(state)
 
+    elif symbol == key.UP:
+        if neighbors[2] is not None:
+            state = neighbors[2]  # down
+            puzzle.update(state)
+
+    elif symbol == key.DOWN:
+        if neighbors[3] is not None:
+            state = neighbors[3]  # up
+            puzzle.update(state)
 
 if __name__ == '__main__':
+    global puzzle, solution
+    
+    puzzle = Puzzle(4, 4)
+    solution = []
+
     pyglet.app.run()
