@@ -54,6 +54,10 @@ class Puzzle(object):
 
     def randomize(self):
         random.shuffle(self.field)
+        if self.field == self.getSolvedState():
+            self.solved = True
+        else:
+            self.solved = False
 
     def setSolved(self):
         self.field = self.getSolvedState()
@@ -111,26 +115,38 @@ class Puzzle(object):
                     self.solvable = (inversions % 2) != 0
         print(self.field)
 
-    def moveLeft():
-        new = getNeighborLeft()
+    def moveLeft(self):
+        new = getNeighborLeft(self.field,self.dim)
         if new is not None:
             self.field = new
-
-    def moveRight():
-        new = getNeighborRight()
+        if self.field == self.getSolvedState():
+            self.solved = True
+        else:
+            self.solved = False    
+    def moveRight(self):
+        new = getNeighborRight(self.field,self.dim)
         if new is not None:
             self.field = new
-
-    def moveUp():
-        new = getNeighborUp()
+        if self.field == self.getSolvedState():
+            self.solved = True
+        else:
+            self.solved = False
+    def moveUp(self):
+        new = getNeighborUp(self.field,self.dim)
         if new is not None:
             self.field = new
-
-    def moveDown():
-        new = getNeighborDown()
+        if self.field == self.getSolvedState():
+            self.solved = True
+        else:
+            self.solved = False
+    def moveDown(self):
+        new = getNeighborDown(self.field,self.dim)
         if new is not None:
             self.field = new
-
+        if self.field == self.getSolvedState():
+            self.solved = True
+        else:
+            self.solved = False
 
 class Search(object):
     def __init__(self, arg1, arg2):
@@ -167,28 +183,29 @@ def heuristicCostManhattan(path, dim):
                 cost += 0
         # Linear Conflict for rows (y): add 2 for each conflict
         cost += 0
+    return cost
 
 # heuristic function: Toorac = tiles out of row and column
 def heuristicCostToorac(path,dim):
     puzzle = path[-1]
     cost = 0
     cols = []
-    for x in range(dimensions[0]):
-        for y in range(dimensions[1]):
+    for x in range(dim[0]):
+        for y in range(dim[1]):
             cols.append([])
-            cols[x].append(puzzle[y][x])
-    for y in range(dimensions[1]):
-        for x in range(dimensions[0]):
-            expectedNumber = x + y * dimensions[0] +1
-            if expectedNumber == 16:
+            cols[x].append(puzzle[y * dim[0] + x])
+    for y in range(dim[1]):
+        for x in range(dim[0]):
+            expectedNumber = x + y * dim[0] +1
+            if expectedNumber == dim[0]*dim[1]:
                 continue
-            if not expectedNumber in puzzle[y]:
+            if not expectedNumber in puzzle[y*dim[0]:y*dim[0]+dim[1]]:
                 cost += 1
-                print("wrong row: " + str(expectedNumber))
-                print(puzzle[y])
+                #print("wrong row: " + str(expectedNumber))
+                #print(puzzle[y])
             if not expectedNumber in cols[x]:
                 cost += 1
-                print("wrong col: " + str(expectedNumber))
+                #print("wrong col: " + str(expectedNumber))
     return cost
 
 # heuristic funktion: Mpt = Misplaced Tiles
@@ -196,12 +213,12 @@ def heuristicCostMpt(path,dim):
     puzzle = path[-1]
     cost = 0
     cols = []
-    for x in range(dimensions[0]):
-        for y in range(dimensions[1]):
-            expectedNumber = x + y * dimensions[0] + 1
-            if expectedNumber == 16:
+    for x in range(dim[0]):
+        for y in range(dim[1]):
+            expectedNumber = x + y * dim[0] + 1
+            if expectedNumber == dim[0]*dim[1]:
                 continue
-            actualnumber = puzzle[y][x]
+            actualnumber = puzzle[y * dim[0] + x]
             if expectedNumber != actualnumber:
                 cost += 1
     return cost
@@ -215,12 +232,12 @@ def heuristicCostYX(path,dim):
     puzzle = path[-1]
     cost = 0
     cols = []
-    for x in range(dimensions[0]):
-        for y in range(dimensions[1]):
-            expectedNumber = x + y * dimensions[0] + 1
-            if expectedNumber == 16:
+    for x in range(dim[0]):
+        for y in range(dim[1]):
+            expectedNumber = x + y * dim[0] + 1
+            if expectedNumber == dim[0]*dim[1]:
                 continue
-            actualnumber = puzzle[y][x]
+            actualnumber = puzzle[y * dim[0] + x]
             if expectedNumber != actualnumber:
                 cost += 1
     return cost
@@ -318,7 +335,6 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
             frontier.put((0, [startPos]))
         else:
             frontier.put([startPos])
-
     while not frontier.empty():
         if frontier.qsize() > max_frontier_len:
             max_frontier_len = frontier.qsize()
@@ -327,7 +343,6 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
             path = frontier.get()[-1]
         else:
             path = frontier.get()
-
         head = path[-1]
 
         if head not in visited:
@@ -340,8 +355,9 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
             ####
             if head in endPosList:
                 return path, len(visited), max_frontier_len
-
-            for neighbor in getNeighbors(head):
+            for neighbor in getNeighborStates(head,puzzle.dim):
+                if neighbor is None:
+                    continue
                 new_path = [n for n in path]
                 new_path.append(neighbor)
                 if _debug:
@@ -350,7 +366,7 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                     #####
                     heuristic_calls += 1
                     #####
-                    frontier.put((heuristicCost(new_path),
+                    frontier.put((currentHeuristic(new_path, puzzle.dim),
                                   id(new_path), new_path))
                 else:
                     frontier.put(new_path)
@@ -371,7 +387,7 @@ def getHint(puzzle):
 
 currentHeuristic = heuristicCostManhattan
 
-heuristics = [heuristicCostManhattan,heuristicA,heuristicCostYX,heuristicCostMpt]
+heuristics = [heuristicCostManhattan,heuristicCostYX,heuristicCostMpt,heuristicCostToorac]
 
 # puzzle = shufflePuzzle(puzzle,steps)
 # printPuzzle(puzzle)
@@ -485,7 +501,7 @@ def on_key_press(symbol, modifiers):
 
     if symbol == key.B:
         solution = []
-        puzzle.randomize()
+        #puzzle.randomize()
         tstart = timer()
         solution = genericSearch([puzzle.getState()],
                                  [puzzle.getSolvedState()])[0]
@@ -519,7 +535,7 @@ def on_key_press(symbol, modifiers):
             print("done")
 
     elif symbol == key.C:
-        print("Absolute cost: " + str(currentHeuristic([puzzle.getState()]),puzzle.dim))
+        print("Absolute cost: " + str(currentHeuristic([puzzle.getState()],puzzle.dim)))
 
     elif symbol == key.H:
         getHint(puzzle)
@@ -538,7 +554,7 @@ def on_key_press(symbol, modifiers):
         puzzle.moveRight()
 
     elif symbol == key.UP:
-        puzzle.moveDown()
+        puzzle.moveUp()
 
     elif symbol == key.DOWN:
         puzzle.moveDown()
