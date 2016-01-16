@@ -36,16 +36,19 @@ global steps
 global solved
 global limit
 
+
 # Performance Data
 added_nodes = 0
 closed_nodes = 0
 omitted_nodes = 0
 heuristic_calls = 0
 
+
 # global values
 solved = True
 limit = 15  # maximum heuristicCost of new random Puzzle ( <= len(solution))
 steps = 20  # number of steps to shuffle puzzle ( >= len(solution))
+
 
 # ui
 font_large = 32
@@ -428,8 +431,11 @@ def on_key_press(symbol, modifiers):
                                  _heuristic=True)[0]
         tend = timer()
         elapsed_time = tend - tstart
-        print("search complete, number of steps: ", len(solution)-1,
-              ". time to complete: ", elapsed_time, "s.")
+
+        if solution != 0:
+            print("search complete, number of steps: ",len(solution)-1,
+                ". time to complete: ", elapsed_time, "s.")
+
     elif symbol == key.ENTER:   # step to solution
         if len(solution) != 0:
             solution = []
