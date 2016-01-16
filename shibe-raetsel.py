@@ -46,7 +46,7 @@ heuristic_calls = 0
 
 # global values
 solved = True
-limit = 15  # maximum heuristicCost of new random Puzzle ( <= len(solution))
+limit = 81  # maximum heuristicCost of new random Puzzle ( <= len(solution))
 steps = 20  # number of steps to shuffle puzzle ( >= len(solution))
 
 
@@ -383,9 +383,10 @@ def on_draw():
     label.draw()
 
     controls = ["Arrowkeys to move tiles",
-                "'b' - shuffle and BFS",
-                "'a' - randomize and A*",
-                "'ENTER' - go to solution",
+                "'b' - search BFS",
+                "'a' - search A*",
+                "'r' - generate random puzzle",
+                "'ENTER' - reset puzzle",
                 "'SPACE' - step through solution",
                 "'c' - display current heuristic cost",
                 "'h' - get a hint for next move"]
@@ -404,26 +405,14 @@ def on_key_press(symbol, modifiers):
     global steps
 
     if symbol == key.B:     # randomize puzzle
-        if len(solution) != 0:
-            solution = []
-        puzzle = deepcopy(endpuzzle)
-        puzzle = shufflePuzzle(puzzle, steps)
-        print("Built puzzle with", steps, "random moves.")
-        print("searching...")
         tstart = timer()
         solution = genericSearch([puzzle], [endpuzzle])[0]
         tend = timer()
         elapsed_time = tend - tstart
         print("search complete, number of steps: ", len(solution)-1,
               ". time to complete: ", elapsed_time, "s.")
-        print("Is solveable: " + str(isSolveAble(puzzle)))
     elif symbol == key.A:
-        if len(solution) != 0:
-            puzzle = solution.pop()
-            solution = []
         # puzzle = shufflePuzzle(puzzle,steps)
-        puzzle = getRandomPuzzle()
-        print("Built complete random puzzle")
         print("searching...")
         tstart = timer()
         solution = genericSearch([puzzle], [endpuzzle],
@@ -457,6 +446,11 @@ def on_key_press(symbol, modifiers):
         puzzle = moveblank(puzzle, "down")
     elif symbol == key.DOWN:
         puzzle = moveblank(puzzle, "up")
+    elif symbol == key.R:
+        puzzle = deepcopy(endpuzzle)
+        #puzzle = shufflePuzzle(puzzle, steps)
+        puzzle = getRandomPuzzle()
+        print("Built random puzzle")
 
 
 @window.event
