@@ -21,7 +21,8 @@ def MyPriorityQueue(PriorityQueue):
     def get(self):
         return super().get()[-1]
 
-global window, maxdimension, bgimg, puzzle, solution,currentHeuristic,heuristics
+global window, maxdimension, bgimg, puzzle,\
+       solution, currentHeuristic, heuristics
 
 # pyglet init
 window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
@@ -119,34 +120,26 @@ class Puzzle(object):
         new = getNeighborLeft(self.field,self.dim)
         if new is not None:
             self.field = new
-        if self.field == self.getSolvedState():
-            self.solved = True
-        else:
-            self.solved = False    
+        self.solved = self.field == self.getSolvedState()
+
     def moveRight(self):
         new = getNeighborRight(self.field,self.dim)
         if new is not None:
             self.field = new
-        if self.field == self.getSolvedState():
-            self.solved = True
-        else:
-            self.solved = False
+        self.solved = self.field == self.getSolvedState()
+    
     def moveUp(self):
         new = getNeighborUp(self.field,self.dim)
         if new is not None:
             self.field = new
-        if self.field == self.getSolvedState():
-            self.solved = True
-        else:
-            self.solved = False
+        self.solved = self.field == self.getSolvedState()
+    
     def moveDown(self):
         new = getNeighborDown(self.field,self.dim)
         if new is not None:
             self.field = new
-        if self.field == self.getSolvedState():
-            self.solved = True
-        else:
-            self.solved = False
+        self.solved = self.field == self.getSolvedState()
+
 
 class Search(object):
     def __init__(self, arg1, arg2):
@@ -154,12 +147,13 @@ class Search(object):
         print(arg2)
 
 
-def heuristicA(path,dim):
+def heuristicA(path, dim):
     return 0
 
 
 def getStatePosition(state, dim, element):
     return state.index(element) % dim[0] , state.index(element) // dim[0]
+
 
 def heuristicCostManhattan(path, dim):
     state = path[-1]
@@ -183,7 +177,8 @@ def heuristicCostManhattan(path, dim):
                 cost += 0
         # Linear Conflict for rows (y): add 2 for each conflict
         cost += 0
-    return cost
+    return cost + len(path)
+
 
 # heuristic function: Toorac = tiles out of row and column
 def heuristicCostToorac(path,dim):
@@ -196,23 +191,24 @@ def heuristicCostToorac(path,dim):
             cols[x].append(puzzle[y * dim[0] + x])
     for y in range(dim[1]):
         for x in range(dim[0]):
-            expectedNumber = x + y * dim[0] +1
+            expectedNumber = x + y * dim[0] + 1
             if expectedNumber == dim[0]*dim[1]:
                 continue
-            if not expectedNumber in puzzle[y*dim[0]:y*dim[0]+dim[1]]:
+            if expectedNumber not in puzzle[y*dim[0]:y*dim[0]+dim[1]]:
                 cost += 1
-                #print("wrong row: " + str(expectedNumber))
-                #print(puzzle[y])
-            if not expectedNumber in cols[x]:
+                # print("wrong row: " + str(expectedNumber))
+                # print(puzzle[y])
+            if expectedNumber not in cols[x]:
                 cost += 1
-                #print("wrong col: " + str(expectedNumber))
-    return cost
+                # print("wrong col: " + str(expectedNumber))
+    return cost + len(path)
+
 
 # heuristic funktion: Mpt = Misplaced Tiles
-def heuristicCostMpt(path,dim):
+def heuristicCostMpt(path, dim):
     puzzle = path[-1]
     cost = 0
-    cols = []
+    cols = [] # never used
     for x in range(dim[0]):
         for y in range(dim[1]):
             expectedNumber = x + y * dim[0] + 1
@@ -221,7 +217,7 @@ def heuristicCostMpt(path,dim):
             actualnumber = puzzle[y * dim[0] + x]
             if expectedNumber != actualnumber:
                 cost += 1
-    return cost
+    return cost + len(path)
 
 
 #---------------------------------------------------------------------------------------------------------------------------------
@@ -231,7 +227,7 @@ def heuristicCostMpt(path,dim):
 def heuristicCostYX(path,dim):
     puzzle = path[-1]
     cost = 0
-    cols = []
+    cols = [] # never used
     for x in range(dim[0]):
         for y in range(dim[1]):
             expectedNumber = x + y * dim[0] + 1
@@ -240,7 +236,7 @@ def heuristicCostYX(path,dim):
             actualnumber = puzzle[y * dim[0] + x]
             if expectedNumber != actualnumber:
                 cost += 1
-    return cost
+    return cost + len(path)
 
 
 
