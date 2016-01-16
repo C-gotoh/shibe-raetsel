@@ -82,7 +82,7 @@ class Puzzle(object):
     def getState(self):
         return self.field[:]
 
-    def update(self, newfield):
+    def setField(self, newfield):
         self.field = newfield[:]
 
         if self.field == self.getSolvedState():
@@ -99,8 +99,7 @@ class Puzzle(object):
                 for other in self.field:
                     if other == 0:
                         continue
-                    if (self.field.index(num) < self.field.index(other))\
-                        and (other < num):
+                    if (self.field.index(num) < self.field.index(other)) and (other < num):
                         inversions += 1
 
             if (self.dim[0] % 2) != 0:
@@ -112,17 +111,40 @@ class Puzzle(object):
                     self.solvable = (inversions % 2) != 0
         print(self.field)
 
+    def moveLeft():
+        new = getNeighborLeft()
+        if new is not None:
+            self.field = new
+
+    def moveRight():
+        new = getNeighborRight()
+        if new is not None:
+            self.field = new
+
+    def moveUp():
+        new = getNeighborUp()
+        if new is not None:
+            self.field = new
+
+    def moveDown():
+        new = getNeighborDown()
+        if new is not None:
+            self.field = new
+
 
 class Search(object):
     def __init__(self, arg1, arg2):
         print(arg1)
         print(arg2)
 
+
 def heuristicA(path,dim):
     return 0
 
+
 def getStatePosition(state, dim, element):
     return state.index(element) % dim[0] , state.index(element) // dim[0]
+
 
 def heuristicCost(path, dim):
     state = path[-1]
@@ -151,49 +173,70 @@ def heuristicCost(path, dim):
 
     return len(path)-1 + cost
 
-def getNeighborStates(state, dim):
-    neighbors = []
+
+def getNeighborLeft(state, dim):
     izero = state.index(0)
 
     # left:
     iswap = izero - 1
     if izero // dim[0] != iswap // dim[0]:
-        neighbors.append(None)
+        return None
     else:
         left = state[:]
         left[izero] = left[iswap]
         left[iswap] = 0
-        neighbors.append(left)
+        return left
+
+
+def getNeighborRight(state, dim):
+    izero = state.index(0)
 
     # right:
     iswap = izero + 1
     if izero // dim[0] != iswap // dim[0]:
-        neighbors.append(None)
+        return None
     else:
         right = state[:]
         right[izero] = right[iswap]
         right[iswap] = 0
-        neighbors.append(right)
+        return right
+
+
+def getNeighborUp(state, dim):
+    izero = state.index(0)
 
     # up:
     iswap = izero - dim[0]
     if izero % dim[1] != iswap % dim[1] or iswap < 0:
-        neighbors.append(None)
+        return None
     else:
         up = state[:]
         up[izero] = up[iswap]
         up[iswap] = 0
-        neighbors.append(up)
+        return up
+
+
+def getNeighborDown(state, dim):
+    izero = state.index(0)
 
     # down:
     iswap = izero + dim[0]
     if izero % dim[1] != iswap % dim[1] or iswap > len(state) - 1:
-        neighbors.append(None)
+        return None
     else:
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
-        neighbors.append(down)
+        return down
+
+
+def getNeighborStates(state, dim):
+    neighbors = []
+
+    neighbors.append(getNeighborLeft(state, dim))
+    neighbors.append(getNeighborRight(state, dim))
+    neighbors.append(getNeighborUp(state, dim))
+    neighbors.append(getNeighborDown(state, dim))
 
     return neighbors
 
@@ -378,10 +421,6 @@ def on_key_press(symbol, modifiers):
     global currentHeuristic
     global heuristics
 
-    neighbors = getNeighborStates(puzzle.getState(),puzzle.dim)
-
-    state = puzzle.getState()
-
     if symbol == key.B:
         solution = []
         puzzle.randomize()
@@ -413,7 +452,7 @@ def on_key_press(symbol, modifiers):
 
     elif symbol == key.SPACE:
         if len(solution) != 0:
-            puzzle.update(solution.pop(0))
+            puzzle.setField(solution.pop(0))
         else:
             print("done")
 
@@ -431,24 +470,16 @@ def on_key_press(symbol, modifiers):
         currentHeuristic = heuristics[(heuristics.index(currentHeuristic)+1)%len(heuristics)]
 
     elif symbol == key.LEFT:
-        if neighbors[1] is not None:
-            state = neighbors[1]  # right
-            puzzle.update(state)
+        puzzle.moveLeft()
 
     elif symbol == key.RIGHT:
-        if neighbors[0] is not None:
-            state = neighbors[0]  # left
-            puzzle.update(state)
+        puzzle.moveRight()
 
     elif symbol == key.UP:
-        if neighbors[2] is not None:
-            state = neighbors[2]  # down
-            puzzle.update(state)
+        puzzle.moveDown()
 
     elif symbol == key.DOWN:
-        if neighbors[3] is not None:
-            state = neighbors[3]  # up
-            puzzle.update(state)
+        puzzle.moveDown()
 
 if __name__ == '__main__':
     global puzzle, solution
