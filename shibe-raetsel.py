@@ -137,12 +137,13 @@ def getStatePosition(state, dim, element):
 
 # highly used function!
 def hCostManhattan(path, dim):
-    state = path[1]
+    state = path[-1]
     cost = 0
+    xtimesy = dim[0] * dim[1]
     for y in range(dim[1]):
         for x in range(dim[0]):
             expectednumber = y * dim[0] + x + 1
-            if expectednumber == dim[0] * dim[1]:
+            if expectednumber == xtimesy:
                 # expectednumber = 0
                 continue
             actualposition = getStatePosition(state, dim, expectednumber)
@@ -592,6 +593,10 @@ def on_key_press(symbol, modifiers):
 
     elif symbol == key.ENTER:   # step to solution
         puzzle.setSolved()
+        solution = ('', puzzle.getState())
+
+    elif symbol == key.Q:
+        puzzle.setField([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
         solution = ('', puzzle.getState())
 
     elif symbol == key.SPACE:
