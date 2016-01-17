@@ -345,12 +345,12 @@ def idaSearch(startPos, endPos, _dataStructure=Queue,
     heuristic_calls = 0
     added_nodes = 0
 
-    # bound = curHeur([startPos],puzzle.dim)
+    cost = curHeur(("", startPos),puzzle.dim)
     bound = 2
     tstart = timer()
     
     while True:
-        path = idaIteration([startPos], 1, bound, endPos)
+        path = idaIteration(("",startPos), 1, bound, endPos)
         if path is not None:
             return path
         tnow = timer()
@@ -364,9 +364,10 @@ def idaIteration(path, lenpath, bound, endPos):
     frontier = []
     frontier.append(path)
     while frontier:
+        #print(frontier)
         path = frontier.pop()
         node = path[-1]
-        estlen = len(path) + curHeur([node], puzzle.dim)
+        estlen = len(path[0]) + curHeur(path, puzzle.dim)
         if str(node) not in visited:
             visited.add(str(node))
             if estlen > bound:
@@ -375,11 +376,24 @@ def idaIteration(path, lenpath, bound, endPos):
                 continue
             if node == endPos:
                 return path
-            for neighbor in getNeighborStates(node, puzzle.dim):
-                if neighbor is None:
-                    continue
-                new_path = path[:]
-                new_path.append(neighbor)
+
+            #print(path)
+            neighbors = getNeighborStates(node, puzzle.dim)
+
+            if neighbors[0] is not None:
+                new_path = (path[0] + "0", neighbors[0])
+                frontier.append(new_path)
+
+            if neighbors[1] is not None:
+                new_path = (path[0] + "1", neighbors[1])
+                frontier.append(new_path)
+
+            if neighbors[2] is not None:
+                new_path = (path[0] + "2", neighbors[2])
+                frontier.append(new_path)
+
+            if neighbors[3] is not None:
+                new_path = (path[0] + "3", neighbors[3])
                 frontier.append(new_path)
     return None
 
@@ -628,7 +642,7 @@ def on_key_press(symbol, modifiers):
         solution = idaSearch(puzzle.getState(), puzzle.getSolvedState())
         tend = timer()
         elapsed_time = tend - tstart
-        print("search complete, number of steps: ", len(solution)-1,
+        print("search complete, number of steps: ", len(solution[0]),
               ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.LEFT:
