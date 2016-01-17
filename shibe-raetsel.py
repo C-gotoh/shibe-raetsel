@@ -584,12 +584,13 @@ def on_key_press(symbol, modifiers):
         solution = ('', puzzle.getState())
 
     elif symbol == key.SPACE:
-        if solution[0] != '':
+        if solution is not None and solution[0] != '':
             solution = (solution[0][1:],
                         getNeighborStates(solution[1],
                                           puzzle.dim)[int(solution[0][0])])
             puzzle.setField(solution[1])
         else:
+            solution = ('', puzzle.getState())
             print("done")
 
     elif symbol == key.C:
