@@ -14,9 +14,13 @@ from random import randint
 import random
 from timeit import default_timer as timer
 
+from heapq import heappop, heappush
+import cProfile
+
 # Class
 
 
+# never used?
 def MyPriorityQueue(PriorityQueue):
     def get(self):
         return super().get()[-1]
@@ -54,11 +58,12 @@ class Puzzle(object):
         self.setSolved()
 
     def randomize(self):
-        random.shuffle(self.field)
-        if self.field == self.getSolvedState():
-            self.solved = True
-        else:
-            self.solved = False
+        while True:
+            random.shuffle(self.field)
+            self.solved = self.field == self.getSolvedState()
+            self.checkSolvable()
+            if self.solvable:
+                break
 
     def setSolved(self):
         self.field = self.getSolvedState()
@@ -74,8 +79,25 @@ class Puzzle(object):
     def isSolved(self):
         return self.solved
 
-    def isSolvable(self):
-        return self.solvable
+    def checkSolvable(self):
+        inversions = 0
+        print(self.field)
+        for num in self.field:
+            if num == 0:
+                continue
+            for other in self.field:
+                if other == 0:
+                    continue
+                if (self.field.index(num) < self.field.index(other)) and (other < num):
+                    inversions += 1
+
+        if (self.dim[0] % 2) != 0:
+            self.solvable = (inversions % 2) == 0
+        else:
+            if ((self.dim[1] - self.getPosition(0)[1]) % 2) != 0:
+                self.solvable = (inversions % 2) == 0
+            else:
+                self.solvable = (inversions % 2) != 0
 
     def getPosition(self, element):
         return self.field.index(element) % self.dim[0],\
@@ -90,52 +112,32 @@ class Puzzle(object):
     def setField(self, newfield):
         self.field = newfield[:]
 
-        if self.field == self.getSolvedState():
+        self.solved = self.field == self.getSolvedState()
+        if self.solved:
             self.solvable = True
-            self.solved = True
         else:
-            self.solved = False
-
-            inversions = 0
-            print(self.field)
-            for num in self.field:
-                if num == 0:
-                    continue
-                for other in self.field:
-                    if other == 0:
-                        continue
-                    if (self.field.index(num) < self.field.index(other)) and (other < num):
-                        inversions += 1
-
-            if (self.dim[0] % 2) != 0:
-                self.solvable = (inversions % 2) == 0
-            else:
-                if ((self.dim[1] - self.getPosition(0)[1]) % 2) != 0:
-                    self.solvable = (inversions % 2) == 0
-                else:
-                    self.solvable = (inversions % 2) != 0
-        print(self.field)
+            self.checkSolvable()
 
     def moveLeft(self):
-        new = getNeighborLeft(self.field,self.dim)
+        new = getNeighborLeft(self.field, self.dim)
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
 
     def moveRight(self):
-        new = getNeighborRight(self.field,self.dim)
+        new = getNeighborRight(self.field, self.dim)
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
     
     def moveUp(self):
-        new = getNeighborUp(self.field,self.dim)
+        new = getNeighborUp(self.field, self.dim)
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
     
     def moveDown(self):
-        new = getNeighborDown(self.field,self.dim)
+        new = getNeighborDown(self.field, self.dim)
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
@@ -177,11 +179,11 @@ def heuristicCostManhattan(path, dim):
                 cost += 0
         # Linear Conflict for rows (y): add 2 for each conflict
         cost += 0
-    return cost + len(path)
+    return cost #+ len(path)
 
 
 # heuristic function: Toorac = tiles out of row and column
-def heuristicCostToorac(path,dim):
+def heuristicCostToorac(path, dim):
     puzzle = path[-1]
     cost = 0
     cols = []
@@ -201,7 +203,7 @@ def heuristicCostToorac(path,dim):
             if expectedNumber not in cols[x]:
                 cost += 1
                 # print("wrong col: " + str(expectedNumber))
-    return cost + len(path)
+    return cost # + len(path)
 
 
 # heuristic funktion: Mpt = Misplaced Tiles
@@ -217,14 +219,14 @@ def heuristicCostMpt(path, dim):
             actualnumber = puzzle[y * dim[0] + x]
             if expectedNumber != actualnumber:
                 cost += 1
-    return cost + len(path)
+    return cost # + len(path)
 
 
 #---------------------------------------------------------------------------------------------------------------------------------
 
 
 # heuristic funktion: X-Y
-def heuristicCostYX(path,dim):
+def heuristicCostYX(path, dim):
     puzzle = path[-1]
     cost = 0
     cols = [] # never used
@@ -318,8 +320,9 @@ def getNeighborStates(state, dim):
 
 def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                   _heuristic=False, _debug=False):
-    visited = []
+    visited = set()
     frontier = _dataStructure()
+    # heap = []
     max_frontier_len = 0
     ####
     global added_notes
@@ -329,26 +332,34 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
     for startPos in startPosList:
         if _heuristic:
             frontier.put((0, [startPos]))
+            # heappush(heap, (currentHeuristic([startPos], puzzle.dim), [startPos]))
         else:
             frontier.put([startPos])
     while not frontier.empty():
-        if frontier.qsize() > max_frontier_len:
-            max_frontier_len = frontier.qsize()
+    # while True:
+        max_frontier_len = max(frontier.qsize(),max_frontier_len)
         path = []
         if _heuristic:
             path = frontier.get()[-1]
+            # path = heappop(heap)[1]
         else:
             path = frontier.get()
         head = path[-1]
 
-        if head not in visited:
-            visited.append(head)
+        if str(head) not in visited:
+            visited.add(str(head))
             ####
             if len(visited) % 1000 == 0:
+                print("")
                 print("Heuristic calls: " + str(heuristic_calls))
                 print("Visited nodes: " + str(len(visited)))
                 print("Max frontier: " + str(max_frontier_len))
-                print("Cur Distance: " + str(currentHeuristic(path, puzzle.dim)))
+                heur = currentHeuristic(path, puzzle.dim)
+                print("Cur Distance: " +
+                      str(heur) + " (" +
+                      str(heur - len(path)) + "h + " +
+                      str(len(path)) + "p)")
+                #if len(visited) == 200000: return
             ####
             if head in endPosList:
                 return path, len(visited), max_frontier_len
@@ -365,6 +376,7 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                     #####
                     frontier.put((currentHeuristic(new_path, puzzle.dim),
                                   id(new_path), new_path))
+                    # heappush(heap, (currentHeuristic(new_path, puzzle.dim), new_path))
                 else:
                     frontier.put(new_path)
     return 0, len(visited), max_frontier_len
@@ -384,7 +396,7 @@ def getHint(puzzle):
 
 currentHeuristic = heuristicCostManhattan
 
-heuristics = [heuristicCostManhattan,heuristicCostYX,heuristicCostMpt,heuristicCostToorac]
+heuristics = [heuristicCostManhattan, heuristicCostYX, heuristicCostMpt, heuristicCostToorac]
 
 # puzzle = shufflePuzzle(puzzle,steps)
 # printPuzzle(puzzle)
@@ -520,6 +532,8 @@ def on_key_press(symbol, modifiers):
         if solution != 0:
             print("search complete, number of steps: ",len(solution)-1,
                   ". time to complete: ", elapsed_time, "s.")
+    elif symbol == key.X:
+        cProfile.run("genericSearch([puzzle.getState()], [puzzle.getSolvedState()], _dataStructure=PriorityQueue, _heuristic=True)")
 
     elif symbol == key.ENTER:   # step to solution
         solution = []
