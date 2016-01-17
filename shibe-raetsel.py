@@ -347,12 +347,15 @@ def idaSearch(startPos, endPos, _dataStructure=Queue,
 
     #bound = currentHeuristic([startPos],puzzle.dim)
     bound = 2
-
+    tstart = timer()
+    
     while True:
         path = idaIteration([startPos], 1, bound, endPos)
         if path != None:
             return path
-        print("Iteration " + str(bound) + " done.")
+        tnow = timer()
+        elapsed_time = tnow - tstart
+        print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)")
         bound += 1
 
 def idaIteration(path, lenpath, bound, endPos):
