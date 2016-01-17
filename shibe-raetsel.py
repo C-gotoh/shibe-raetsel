@@ -364,6 +364,52 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                     frontier.put(new_path)
     return 0, len(visited), max_frontier_len
 
+def idaSearch(startPos, endPos, _dataStructure=Queue,
+                _heuristic=False, _debug=False):
+    visited = set()
+    max_frontier_len = 0
+
+    global added_nodes
+    global heuristic_calls
+    heuristic_calls = 0
+    added_nodes = 0
+
+    #bound = currentHeuristic([startPos],puzzle.dim)
+    bound = 2
+
+    while True:
+        path = idaIteration([startPos], 0, bound, endPos)
+        if path != None:
+            return path
+        print("Iteration " + str(bound) + " done.")
+        bound += 1
+
+def idaIteration(path, lenpath, bound, endPos):
+    visited = set()
+    frontier = []
+    frontier.append(path)
+    while frontier:
+        path = frontier.pop()
+        node = path[-1]
+        estlen = len(path) + currentHeuristic([node],puzzle.dim)
+        if str(node) not in visited:
+            visited.add(str(node))
+            if estlen > bound:
+                #print("skipping")
+                #print(len(frontier))
+                continue
+            if node == endPos:
+                return path
+            for neighbor in getNeighborStates(node, puzzle.dim):
+                if neighbor is None:
+                    continue
+                new_path = path[:]
+                new_path.append(neighbor)
+                frontier.append(new_path)
+    return None
+
+
+
 
 def getHint(puzzle):
     # TODO: print or display real hint instead of puzzle
@@ -497,7 +543,7 @@ def on_key_press(symbol, modifiers):
             print("search complete, number of steps: ",len(solution)-1,
                     ". time to complete: ", elapsed_time, "s.")
     elif symbol == key.X:
-        cProfile.run("genericSearch([puzzle.getState()], [puzzle.getSolvedState()], _dataStructure=PriorityQueue, _heuristic=True)")
+        cProfile.run("idaSearch(puzzle.getState(), puzzle.getSolvedState(), _dataStructure=PriorityQueue, _heuristic=True)")
 
     elif symbol == key.ENTER:   # step to solution
         solution = []
@@ -521,6 +567,17 @@ def on_key_press(symbol, modifiers):
 
     elif symbol == key.E:
         currentHeuristic = heuristics[(heuristics.index(currentHeuristic)+1)%len(heuristics)]
+
+    elif symbol == key.I:
+        print("searching...")
+        tstart = timer()
+        solution = idaSearch(puzzle.getState(),
+                                 puzzle.getSolvedState())
+        tend = timer()
+        elapsed_time = tend - tstart
+        if solution != 0:
+            print("search complete, number of steps: ", len(solution)-1,
+                    ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.LEFT:
         puzzle.moveLeft(False)
