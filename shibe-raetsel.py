@@ -228,18 +228,17 @@ def getNeighborStates(state, dim):
         left = state[:]
         left[izero] = left[iswap]
         left[iswap] = 0
-    # right:
-    iswap = izero + 1
-    if izero_fdiv == iswap // dim[0]:
-        right = state[:]
-        right[izero] = right[iswap]
-        right[iswap] = 0
+    else:
+        left = None
+
     # up:
     iswap = izero + dim[0]
     if izero_mod == iswap % dim[1] and iswap < len(state):
         up = state[:]
         up[izero] = up[iswap]
         up[iswap] = 0
+    else:
+        up = None
 
     # down:
     iswap = izero - dim[0]
@@ -247,6 +246,17 @@ def getNeighborStates(state, dim):
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
+    else:
+        down = None
+
+    # right:
+    iswap = izero + 1
+    if izero_fdiv == iswap // dim[0]:
+        right = state[:]
+        right[izero] = right[iswap]
+        right[iswap] = 0
+    else:
+        right = None
 
     return (left, up, down, right)
 
@@ -293,7 +303,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
                       "Max. frontier: " + str(max_frontier) + "\n" +
                       "Cur Distance:  " + str(hcosts) + " | " +
                       str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
-                # if len(visited) == 200000: return
+                if len(visited) == 200000: return
 
             left, up, down, right = getNeighborStates(head, puzzle.dim)
 
