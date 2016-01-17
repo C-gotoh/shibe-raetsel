@@ -118,26 +118,38 @@ class Puzzle(object):
         else:
             self.checkSolvable()
 
-    def moveLeft(self):
-        new = getNeighborLeft(self.field, self.dim)
+    def moveLeft(self, reversed):
+        new = getNeighborStates(self.field, self.dim)
+        if reversed:
+            new.reverse()
+        new = new[0]
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
 
-    def moveRight(self):
-        new = getNeighborRight(self.field, self.dim)
+    def moveRight(self, reversed):
+        new = getNeighborStates(self.field, self.dim)
+        if reversed:
+            new.reverse()
+        new = new[3]
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
     
-    def moveUp(self):
-        new = getNeighborUp(self.field, self.dim)
+    def moveUp(self, reversed):
+        new = getNeighborStates(self.field, self.dim)
+        if reversed:
+            new.reverse()
+        new = new[1]
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
     
-    def moveDown(self):
-        new = getNeighborDown(self.field, self.dim)
+    def moveDown(self, reversed):
+        new = getNeighborStates(self.field, self.dim)
+        if reversed:
+            new.reverse()
+        new = new[2]
         if new is not None:
             self.field = new
         self.solved = self.field == self.getSolvedState()
@@ -153,10 +165,13 @@ def heuristicA(path, dim):
     return 0
 
 
+# highly used function
 def getStatePosition(state, dim, element):
-    return state.index(element) % dim[0] , state.index(element) // dim[0]
+    index = state.index(element)
+    return index % dim[0] , index // dim[0]
 
 
+# highly used function!
 def heuristicCostManhattan(path, dim):
     state = path[-1]
 
@@ -179,9 +194,10 @@ def heuristicCostManhattan(path, dim):
                 cost += 0
         # Linear Conflict for rows (y): add 2 for each conflict
         cost += 0
-    return cost #+ len(path)
+    return cost # + len(path)
 
 
+# highly used function!
 # heuristic function: Toorac = tiles out of row and column
 def heuristicCostToorac(path, dim):
     puzzle = path[-1]
@@ -206,11 +222,11 @@ def heuristicCostToorac(path, dim):
     return cost # + len(path)
 
 
+# highly used function!
 # heuristic funktion: Mpt = Misplaced Tiles
 def heuristicCostMpt(path, dim):
     puzzle = path[-1]
     cost = 0
-    cols = [] # never used
     for x in range(dim[0]):
         for y in range(dim[1]):
             expectedNumber = x + y * dim[0] + 1
@@ -222,98 +238,64 @@ def heuristicCostMpt(path, dim):
     return cost # + len(path)
 
 
-#---------------------------------------------------------------------------------------------------------------------------------
-
-
+# highly used function!
 # heuristic funktion: X-Y
 def heuristicCostYX(path, dim):
     puzzle = path[-1]
     cost = 0
-    cols = [] # never used
     for x in range(dim[0]):
         for y in range(dim[1]):
-            expectedNumber = x + y * dim[0] + 1
+            val = y * dim[0] + x
+            expectedNumber = val + 1
             if expectedNumber == dim[0]*dim[1]:
                 continue
-            actualnumber = puzzle[y * dim[0] + x]
+            actualnumber = puzzle[val]
             if expectedNumber != actualnumber:
                 cost += 1
     return cost + len(path)
 
 
-
-
-#---------------------------------------------------------------------------------------------------------------------------------
-
-    global heuristic_calls
-    heuristic_calls += 1
-
-    return len(path)-1 + cost
-
-
-def getNeighborLeft(state, dim):
+# highly used function!
+def getNeighborStates(state, dim):
     izero = state.index(0)
+                #left  up    down  right
+    neighbors = [None, None, None, None]
+
+    izero_fdiv = izero // dim[0]
 
     # left:
     iswap = izero - 1
-    if izero // dim[0] != iswap // dim[0]:
-        return None
-    else:
+    if izero_fdiv == iswap // dim[0]:
         left = state[:]
         left[izero] = left[iswap]
         left[iswap] = 0
-        return left
-
-
-def getNeighborRight(state, dim):
-    izero = state.index(0)
+        neighbors[0] = left
 
     # right:
     iswap = izero + 1
-    if izero // dim[0] != iswap // dim[0]:
-        return None
-    else:
+    if izero_fdiv == iswap // dim[0]:
         right = state[:]
         right[izero] = right[iswap]
         right[iswap] = 0
-        return right
+        neighbors[3] = right
 
-
-def getNeighborUp(state, dim):
-    izero = state.index(0)
+    izero_mod = izero % dim[1]
 
     # up:
-    iswap = izero - dim[0]
-    if izero % dim[1] != iswap % dim[1] or iswap < 0:
-        return None
-    else:
+    iswap = izero + dim[0]
+    if izero_mod == iswap % dim[1] and iswap < len(state):
         up = state[:]
         up[izero] = up[iswap]
         up[iswap] = 0
-        return up
-
-
-def getNeighborDown(state, dim):
-    izero = state.index(0)
+        neighbors[1] = up
 
     # down:
-    iswap = izero + dim[0]
-    if izero % dim[1] != iswap % dim[1] or iswap > len(state) - 1:
-        return None
-    else:
+    iswap = izero - dim[0]
+    if izero_mod == iswap % dim[1] and iswap > 0:
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
-        return down
-
-
-def getNeighborStates(state, dim):
-    neighbors = []
-
-    neighbors.append(getNeighborLeft(state, dim))
-    neighbors.append(getNeighborRight(state, dim))
-    neighbors.append(getNeighborUp(state, dim))
-    neighbors.append(getNeighborDown(state, dim))
+        neighbors[2] = down
 
     return neighbors
 
@@ -337,7 +319,7 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
             frontier.put([startPos])
     while not frontier.empty():
     # while True:
-        max_frontier_len = max(frontier.qsize(),max_frontier_len)
+        max_frontier_len = max(frontier.qsize(), max_frontier_len)
         path = []
         if _heuristic:
             path = frontier.get()[-1]
@@ -540,16 +522,16 @@ def on_key_press(symbol, modifiers):
         currentHeuristic = heuristics[(heuristics.index(currentHeuristic)+1)%len(heuristics)]
 
     elif symbol == key.LEFT:
-        puzzle.moveLeft()
+        puzzle.moveLeft(False)
 
     elif symbol == key.RIGHT:
-        puzzle.moveRight()
+        puzzle.moveRight(False)
 
     elif symbol == key.UP:
-        puzzle.moveUp()
+        puzzle.moveUp(False)
 
     elif symbol == key.DOWN:
-        puzzle.moveDown()
+        puzzle.moveDown(False)
 
 if __name__ == '__main__':
     global puzzle, solution
