@@ -654,7 +654,7 @@ if __name__ == '__main__':
     global puzzle, solution, cols
 
     puzzle = Puzzle(4, 4)
-    solution = []
+    solution = ('', puzzle.getState())
 
     cols = []
     for x in range(puzzle.dim[0]):
