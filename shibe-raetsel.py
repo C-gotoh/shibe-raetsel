@@ -305,7 +305,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
         visited.add(str(head))
 
         if head == end_state:
-            return path, len(visited), max_frontier
+            return path[:-1], len(visited), max_frontier
 
         if _debug and len(visited) % 10000 == 0:
             print("----------\n" +
@@ -350,7 +350,7 @@ def idaSearch(startPos, endPos, _dataStructure=Queue,
     bound = 2
 
     while True:
-        path = idaIteration([startPos], 0, bound, endPos)
+        path = idaIteration([startPos], 1, bound, endPos)
         if path != None:
             return path
         print("Iteration " + str(bound) + " done.")
