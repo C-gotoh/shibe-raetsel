@@ -585,6 +585,8 @@ def on_key_press(symbol, modifiers):
               ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.X:
+        cProfile.run('idaSearch(puzzle.getState(), puzzle.getSolvedState())')
+        return
         cProfile.run("genericSearch(puzzle.getState(),\
                                     puzzle.getSolvedState(),\
                                     _dataStructure=PriorityQueue,\
