@@ -349,7 +349,7 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
         if str(head) not in visited:
             visited.add(str(head))
             ####
-            if len(visited) % 1000 == 0:
+            if len(visited) % 10000 == 0:
                 print("")
                 print("Heuristic calls: " + str(heuristic_calls))
                 print("Visited nodes: " + str(len(visited)))
@@ -374,7 +374,7 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                     #####
                     heuristic_calls += 1
                     #####
-                    frontier.put((currentHeuristic(new_path, puzzle.dim),
+                    frontier.put((currentHeuristic(new_path, puzzle.dim)+len(new_path),
                                   id(new_path), new_path))
                     # heappush(heap, (currentHeuristic(new_path, puzzle.dim), new_path))
                 else:
@@ -518,7 +518,6 @@ def on_key_press(symbol, modifiers):
         elapsed_time = tend - tstart
         print("search complete, number of steps: ", len(solution)-1,
               ". time to complete: ", elapsed_time, "s.")
-
     elif symbol == key.A:
         # puzzle = shufflePuzzle(puzzle,steps)
         print("searching...")
