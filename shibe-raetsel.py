@@ -43,7 +43,6 @@ class Puzzle(object):
 
     def checkSolvable(self):
         inversions = 0
-        print(self.field)
         for num in self.field:
             if num == 0:
                 continue
@@ -51,7 +50,7 @@ class Puzzle(object):
                 if other == 0:
                     continue
 
-                numpos =  self.field.index(num)
+                numpos = self.field.index(num)
                 otherpos = self.field.index(other)
                 if (numpos < otherpos) and (other < num):
                     inversions += 1
@@ -594,6 +593,14 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.R:
         print("Built random puzzle")
         puzzle.randomize()
+        print("Done")
+
+    elif symbol == key.T:
+        bound = 20
+        print("Built random puzzle with bound (" + str(bound) + ")")
+        puzzle.randomize()
+        while currentHeuristic([puzzle.getState()], puzzle.dim) > bound:
+            puzzle.randomize()
         print("Done")
 
     elif symbol == key.E:
