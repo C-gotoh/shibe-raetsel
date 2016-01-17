@@ -356,6 +356,7 @@ def idaSearch(startPos, endPos, _dataStructure=Queue,
         tnow = timer()
         elapsed_time = tnow - tstart
         print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)")
+        if bound >= 50: return path
         bound += 1
 
 def idaIteration(path, lenpath, bound, endPos):
@@ -570,6 +571,8 @@ def on_key_press(symbol, modifiers):
                   ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.X:
+        cProfile.run('idaSearch(puzzle.getState(), puzzle.getSolvedState())')
+        return
         cProfile.run("genericSearch(puzzle.getState(),\
                                     puzzle.getSolvedState(),\
                                     _dataStructure=PriorityQueue,\
@@ -579,6 +582,10 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.ENTER:   # step to solution
         solution = []
         puzzle.setSolved()
+
+    elif symbol == key.Q:
+        puzzle.setField([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
+        solution = ('', puzzle.getState())
 
     elif symbol == key.SPACE:
         if len(solution) != 0:
