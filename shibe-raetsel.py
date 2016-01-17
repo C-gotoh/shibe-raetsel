@@ -136,9 +136,8 @@ def getStatePosition(state, dim, element):
 
 
 # highly used function!
-def heuristicCostManhattan(path, dim):
-    state = path[-1]
-
+def hCostManhattan(path, dim):
+    state = path[1]
     cost = 0
     for y in range(dim[1]):
         for x in range(dim[0]):
@@ -164,8 +163,8 @@ def heuristicCostManhattan(path, dim):
 
 # highly used function!
 # heuristic function: Toorac = tiles out of row and column
-def heuristicCostToorac(path, dim):
-    puzzle = path[-1]
+def hCostToorac(path, dim):
+    state = path[1]
     cost = 0
     global cols
     for y in range(dim[1]):
@@ -173,10 +172,10 @@ def heuristicCostToorac(path, dim):
             expectedNumber = x + y * dim[0] + 1
             if expectedNumber == dim[0]*dim[1]:
                 continue
-            if expectedNumber not in puzzle[y*dim[0]:y*dim[0]+dim[1]]:
+            if expectedNumber not in state[y*dim[0]:y*dim[0]+dim[1]]:
                 cost += 1
                 # print("wrong row: " + str(expectedNumber))
-                # print(puzzle[y])
+                # print(state[y])
             if expectedNumber not in cols[x]:
                 cost += 1
                 # print("wrong col: " + str(expectedNumber))
@@ -185,15 +184,15 @@ def heuristicCostToorac(path, dim):
 
 # highly used function!
 # heuristic funktion: Mpt = Misplaced Tiles
-def heuristicCostMpt(path, dim):
-    puzzle = path[-1]
+def hCostMpt(path, dim):
+    state = path[-1]
     cost = 0
     for x in range(dim[0]):
         for y in range(dim[1]):
             expectedNumber = x + y * dim[0] + 1
             if expectedNumber == dim[0]*dim[1]:
                 continue
-            actualnumber = puzzle[y * dim[0] + x]
+            actualnumber = state[y * dim[0] + x]
             if expectedNumber != actualnumber:
                 cost += 1
     return cost  # + len(path)
@@ -201,8 +200,8 @@ def heuristicCostMpt(path, dim):
 
 # highly used function!
 # heuristic funktion: X-Y
-def heuristicCostYX(path, dim):
-    puzzle = path[-1]
+def hCostYX(path, dim):
+    state = path[-1]
     cost = 0
     for x in range(dim[0]):
         for y in range(dim[1]):
@@ -210,7 +209,7 @@ def heuristicCostYX(path, dim):
             expectedNumber = val + 1
             if expectedNumber == dim[0]*dim[1]:
                 continue
-            actualnumber = puzzle[val]
+            actualnumber = state[val]
             if expectedNumber != actualnumber:
                 cost += 1
     return cost + len(path)
@@ -275,10 +274,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
     global heuristic_calls
     heuristic_calls = 0
 
-    if _heuristic:
-        item = (currentHeuristic([start_pos], puzzle.dim), 1, [start_pos])
-    else:
-        item = [start_pos]
+    item = (curHeur(('', start_pos), puzzle.dim), 1, ('', start_pos))
 
     # heappush(heap, item)
     frontier.put(item)
@@ -287,73 +283,78 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
     while not frontier.empty():
         max_frontier = max(frontier.qsize(), max_frontier)
 
-        if _heuristic:
-            # hcosts, plength, path = heappop(heap)
-            hcosts, plength, path = frontier.get()
-            plength += 1
-        else:
-            path = frontier.get()
+        # hcosts, plength, path = heappop(heap)
+        hcosts, plength, path = frontier.get()
+        plength += 1
 
-        path.append(None)
-        head = path[-2]
+        head = path[1]
 
         if str(head) in visited:
             # omitted += 1
             continue
+        else:
+            visited.add(str(head))
 
-        visited.add(str(head))
+            if head == end_state:
+                return (path[0], start_pos), len(visited), max_frontier
 
-        if head == end_state:
-            return path[:-1], len(visited), max_frontier
+            if _debug and len(visited) % 10000 == 0:
+                print("----------\n" +
+                      "Heur. calls:   " + str(heuristic_calls) + "\n" +
+                      "Visited nodes: " + str(len(visited)) + "\n" +
+                      "Max. frontier: " + str(max_frontier) + "\n" +
+                      "Cur Distance:  " + str(hcosts) + " | " +
+                      str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
+                # if len(visited) == 200000: return
 
-        if _debug and len(visited) % 10000 == 0:
-            print("----------\n" +
-                  "Heur. calls:   " + str(heuristic_calls) + "\n" +
-                  "Visited nodes: " + str(len(visited)) + "\n" +
-                  "Max. frontier: " + str(max_frontier) + "\n" +
-                  "Cur Distance:  " + str(hcosts) + " | " +
-                  str(hcosts - plength + 1) + "h, " + str(plength - 1) + "p")
-            # if len(visited) == 200000: return
+            neighbors = getNeighborStates(head, puzzle.dim)
 
-        for neighbor in getNeighborStates(head, puzzle.dim):
-            if neighbor is None:
-                continue
+            if neighbors[0] is not None:
+                new_path = (path[0] + "0", neighbors[0])
+                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                             plength,
+                             new_path))
 
-            new_path = path[:]
-            new_path[-1] = neighbor
+            if neighbors[1] is not None:
+                new_path = (path[0] + "1", neighbors[1])
+                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                             plength,
+                             new_path))
 
-            if _heuristic:
-                heuristic_calls += 1
-                item = (currentHeuristic(new_path, puzzle.dim) + plength,
-                        plength,
-                        new_path)
-            else:
-                item = new_path
+            if neighbors[2] is not None:
+                new_path = (path[0] + "2", neighbors[2])
+                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                             plength,
+                             new_path))
 
-            # heappush(heap, item)
-            frontier.put(item)
+            if neighbors[3] is not None:
+                new_path = (path[0] + "3", neighbors[3])
+                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                             plength,
+                             new_path))
+
+            # frontier elements: (hcost+plength, plength, (string, state))
 
     return 0, len(visited), max_frontier
 
-def idaSearch(startPos, endPos, _dataStructure=Queue,
-                _heuristic=False, _debug=False):
-    visited = set()
-    max_frontier_len = 0
 
+def idaSearch(startPos, endPos, _dataStructure=Queue,
+              _heuristic=False, _debug=False):
     global added_nodes
     global heuristic_calls
     heuristic_calls = 0
     added_nodes = 0
 
-    #bound = currentHeuristic([startPos],puzzle.dim)
+    # bound = curHeur([startPos],puzzle.dim)
     bound = 2
 
     while True:
         path = idaIteration([startPos], 1, bound, endPos)
-        if path != None:
+        if path is not None:
             return path
         print("Iteration " + str(bound) + " done.")
         bound += 1
+
 
 def idaIteration(path, lenpath, bound, endPos):
     visited = set()
@@ -362,12 +363,12 @@ def idaIteration(path, lenpath, bound, endPos):
     while frontier:
         path = frontier.pop()
         node = path[-1]
-        estlen = len(path) + currentHeuristic([node],puzzle.dim)
+        estlen = len(path) + curHeur([node], puzzle.dim)
         if str(node) not in visited:
             visited.add(str(node))
             if estlen > bound:
-                #print("skipping")
-                #print(len(frontier))
+                # print("skipping")
+                # print(len(frontier))
                 continue
             if node == endPos:
                 return path
@@ -380,8 +381,6 @@ def idaIteration(path, lenpath, bound, endPos):
     return None
 
 
-
-
 def getHint(puzzle):
     # TODO: print or display real hint instead of puzzle
     global solution
@@ -389,7 +388,7 @@ def getHint(puzzle):
         print("hint: do nothing")
     else:
         print("calculating hint ...")
-        solution = genericSearch(puzzle.getState(),
+        solution, a, b = genericSearch(puzzle.getState(),
                                  puzzle.getSolvedState(),
                                  _dataStructure=PriorityQueue,
                                  _heuristic=True)[0]
@@ -397,16 +396,16 @@ def getHint(puzzle):
             printPuzzle(solution[1])
 
 global window, maxdimension, bgimg, puzzle,\
-       solution, currentHeuristic, heuristics,\
+       solution, curHeur, heuristics,\
        arrow_keys_reversed, cols
 
 arrow_keys_reversed = False
 
-heuristics = [heuristicCostManhattan,
-              heuristicCostYX,
-              heuristicCostMpt,
-              heuristicCostToorac]
-currentHeuristic = heuristics[0]
+heuristics = [hCostManhattan,
+              hCostYX,
+              hCostMpt,
+              hCostToorac]
+curHeur = heuristics[0]
 
 # pyglet init
 window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
@@ -443,7 +442,7 @@ def on_resize(width, height):
 @window.event
 def on_draw():
     global puzzle
-    global currentHeuristic
+    global curHeur
 
     # ---- Background respond to solved state
     if puzzle.isSolved():
@@ -485,7 +484,7 @@ def on_draw():
                       anchor_y='center').draw()
 
     for i in range(len(heuristics)):
-        if currentHeuristic == heuristics[i]:
+        if curHeur == heuristics[i]:
             pyglet.text.Label("* " + str(heuristics[i]),
                               font_name='Times New Roman',
                               font_size=font_small,
@@ -499,16 +498,17 @@ def on_draw():
                               font_name='Times New Roman',
                               font_size=font_small,
                               x=16,
-                              y=window.height-font_large-(len(heuristics)+1-i)*round(1.5*font_small),
+                              y=window.height-font_large -
+                              (len(heuristics)+1-i)*round(1.5*font_small),
                               anchor_x='left',
                               anchor_y='center').draw()
 
     # ---- Draw current heuristic cost
-    pyglet.text.Label("Cost " + str(currentHeuristic([puzzle.getState()],
+    pyglet.text.Label("Cost " + str(curHeur(('', puzzle.getState()),
                                     puzzle.dim)),
                       font_name='Times New Roman',
                       font_size=font_small,
-                      x=window.width - font_large*3 ,
+                      x=window.width - font_large*3,
                       y=window.height-font_large,
                       anchor_x='left',
                       anchor_y='center').draw()
@@ -538,33 +538,36 @@ def on_draw():
 @window.event
 def on_key_press(symbol, modifiers):
     global solution, puzzle,\
-           currentHeuristic, heuristics,\
+           curHeur, heuristics,\
            arrow_keys_reversed
 
     if symbol == key.B:
         print("searching...")
         tstart = timer()
-        solution = genericSearch(puzzle.getState(),
-                                 puzzle.getSolvedState())[0]
+
+        solution, a, b = genericSearch(puzzle.getState(), puzzle.getSolvedState())
+        solution.append(puzzle.getState())
+
         tend = timer()
         elapsed_time = tend - tstart
 
-        if solution != 0:
-            print("search complete, number of steps: ", len(solution)-1,
-                  ". time to complete: ", elapsed_time, "s.")
+        print("search complete, number of steps: ", len(solution[0]),
+              ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.A:
         print("searching...")
         tstart = timer()
-        solution = genericSearch(puzzle.getState(),
+
+        solution, a, b = genericSearch(puzzle.getState(),
                                  puzzle.getSolvedState(),
                                  _dataStructure=PriorityQueue,
-                                 _heuristic=True)[0]
+                                 _heuristic=True)
+
         tend = timer()
         elapsed_time = tend - tstart
-        if solution != 0:
-            print("search complete, number of steps: ", len(solution)-1,
-                  ". time to complete: ", elapsed_time, "s.")
+
+        print("search complete, number of steps: ", len(solution[0]),
+              ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.X:
         cProfile.run("genericSearch(puzzle.getState(),\
@@ -574,61 +577,71 @@ def on_key_press(symbol, modifiers):
                                     _debug=True)")
 
     elif symbol == key.ENTER:   # step to solution
-        solution = []
         puzzle.setSolved()
+        solution = ('', puzzle.getState())
 
     elif symbol == key.SPACE:
-        if len(solution) != 0:
-            puzzle.setField(solution.pop(0))
+        if solution[0] != '':
+            solution = (solution[0][1:],
+                        getNeighborStates(solution[1],
+                                          puzzle.dim)[int(solution[0][0])])
+            puzzle.setField(solution[1])
         else:
             print("done")
 
     elif symbol == key.C:
         print("Absolute cost: " +
-              str(currentHeuristic([puzzle.getState()], puzzle.dim)))
+              str(curHeur(('', puzzle.getState()), puzzle.dim)))
 
     elif symbol == key.H:
         getHint(puzzle)
 
     elif symbol == key.R:
+
         print("Built random puzzle")
         puzzle.randomize()
         print("Done")
+
+        solution = ('', puzzle.getState())
 
     elif symbol == key.T:
         bound = 20
         print("Built random puzzle with bound (" + str(bound) + ")")
         puzzle.randomize()
-        while currentHeuristic([puzzle.getState()], puzzle.dim) > bound:
+        while curHeur(('', puzzle.getState()), puzzle.dim) > bound:
             puzzle.randomize()
         print("Done")
 
+        solution = ('', puzzle.getState())
+
     elif symbol == key.E:
-        new_index = (heuristics.index(currentHeuristic)+1) % len(heuristics)
-        currentHeuristic = heuristics[new_index]
+        new_index = (heuristics.index(curHeur)+1) % len(heuristics)
+        curHeur = heuristics[new_index]
 
     elif symbol == key.I:
         print("searching...")
         tstart = timer()
-        solution = idaSearch(puzzle.getState(),
-                                 puzzle.getSolvedState())
+        solution = idaSearch(puzzle.getState(), puzzle.getSolvedState())
         tend = timer()
         elapsed_time = tend - tstart
-        if solution != 0:
-            print("search complete, number of steps: ", len(solution)-1,
-                    ". time to complete: ", elapsed_time, "s.")
+        print("search complete, number of steps: ", len(solution)-1,
+              ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.LEFT:
         puzzle.moveLeft(arrow_keys_reversed)
+        solution = ('', puzzle.getState())
 
     elif symbol == key.RIGHT:
         puzzle.moveRight(arrow_keys_reversed)
+        solution = ('', puzzle.getState())
 
     elif symbol == key.UP:
         puzzle.moveUp(arrow_keys_reversed)
+        solution = ('', puzzle.getState())
 
     elif symbol == key.DOWN:
         puzzle.moveDown(arrow_keys_reversed)
+        solution = ('', puzzle.getState())
 
     elif symbol == key.Y:
         arrow_keys_reversed = not arrow_keys_reversed
