@@ -344,6 +344,7 @@ def genericSearch(startPosList, endPosList, _dataStructure=Queue,
                 #if len(visited) == 200000: return
             ####
             if head in endPosList:
+                print("lenght of path: " +str(len(path)))
                 return path, len(visited), max_frontier_len
             for neighbor in getNeighborStates(head, puzzle.dim):
                 if neighbor is None:
