@@ -83,7 +83,7 @@ class Puzzle(object):
             self.checkSolvable()
 
     def moveLeft(self, reversed):
-        new = getNeighborStates(self.field, self.dim)
+        new = list(getNeighborStates(self.field, self.dim))
         if reversed:
             new.reverse()
         new = new[0]
@@ -92,7 +92,7 @@ class Puzzle(object):
         self.solved = self.field == self.getSolvedState()
 
     def moveRight(self, reversed):
-        new = getNeighborStates(self.field, self.dim)
+        new = list(getNeighborStates(self.field, self.dim))
         if reversed:
             new.reverse()
         new = new[3]
@@ -101,7 +101,7 @@ class Puzzle(object):
         self.solved = self.field == self.getSolvedState()
 
     def moveUp(self, reversed):
-        new = getNeighborStates(self.field, self.dim)
+        new = list(getNeighborStates(self.field, self.dim))
         if reversed:
             new.reverse()
         new = new[1]
@@ -110,7 +110,7 @@ class Puzzle(object):
         self.solved = self.field == self.getSolvedState()
 
     def moveDown(self, reversed):
-        new = getNeighborStates(self.field, self.dim)
+        new = list(getNeighborStates(self.field, self.dim))
         if reversed:
             new.reverse()
         new = new[2]
@@ -217,14 +217,8 @@ def hCostYX(path, dim):
 
 # highly used function!
 def getNeighborStates(state, dim):
-    izero = state.index(0)
-
-    neighbors = [None,  # left
-                 None,  # up
-                 None,  # down
-                 None]  # right
-
     # precalc
+    izero = state.index(0)
     izero_fdiv = izero // dim[0]
     izero_mod = izero % dim[1]
 
@@ -234,23 +228,18 @@ def getNeighborStates(state, dim):
         left = state[:]
         left[izero] = left[iswap]
         left[iswap] = 0
-        neighbors[0] = left
-
     # right:
     iswap = izero + 1
     if izero_fdiv == iswap // dim[0]:
         right = state[:]
         right[izero] = right[iswap]
         right[iswap] = 0
-        neighbors[3] = right
-
     # up:
     iswap = izero + dim[0]
     if izero_mod == iswap % dim[1] and iswap < len(state):
         up = state[:]
         up[izero] = up[iswap]
         up[iswap] = 0
-        neighbors[1] = up
 
     # down:
     iswap = izero - dim[0]
@@ -258,9 +247,8 @@ def getNeighborStates(state, dim):
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
-        neighbors[2] = down
 
-    return neighbors
+    return (left, up, down, right)
 
 
 def genericSearch(start_pos, end_state, _dataStructure=Queue,
@@ -307,28 +295,28 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
                       str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
                 # if len(visited) == 200000: return
 
-            neighbors = getNeighborStates(head, puzzle.dim)
+            left, up, down, right = getNeighborStates(head, puzzle.dim)
 
-            if neighbors[0] is not None:
-                new_path = (path[0] + "0", neighbors[0])
+            if left is not None:
+                new_path = (path[0] + "0", left)
                 frontier.put((curHeur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if neighbors[1] is not None:
-                new_path = (path[0] + "1", neighbors[1])
+            if up is not None:
+                new_path = (path[0] + "1", up)
                 frontier.put((curHeur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if neighbors[2] is not None:
-                new_path = (path[0] + "2", neighbors[2])
+            if down is not None:
+                new_path = (path[0] + "2", down)
                 frontier.put((curHeur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if neighbors[3] is not None:
-                new_path = (path[0] + "3", neighbors[3])
+            if right is not None:
+                new_path = (path[0] + "3", right)
                 frontier.put((curHeur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
@@ -377,23 +365,22 @@ def idaIteration(path, lenpath, bound, endPos):
             if node == endPos:
                 return path
 
-            #print(path)
-            neighbors = getNeighborStates(node, puzzle.dim)
+            left, up, down, right = getNeighborStates(node, puzzle.dim)
 
-            if neighbors[0] is not None:
-                new_path = (path[0] + "0", neighbors[0])
+            if left is not None:
+                new_path = (path[0] + "0", left)
                 frontier.append(new_path)
 
-            if neighbors[1] is not None:
-                new_path = (path[0] + "1", neighbors[1])
+            if up is not None:
+                new_path = (path[0] + "1", up)
                 frontier.append(new_path)
 
-            if neighbors[2] is not None:
-                new_path = (path[0] + "2", neighbors[2])
+            if down is not None:
+                new_path = (path[0] + "2", down)
                 frontier.append(new_path)
 
-            if neighbors[3] is not None:
-                new_path = (path[0] + "3", neighbors[3])
+            if right is not None:
+                new_path = (path[0] + "3", right)
                 frontier.append(new_path)
     return None
 
