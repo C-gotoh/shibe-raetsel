@@ -661,7 +661,7 @@ def on_key_press(symbol, modifiers):
         solution = idaSearch(puzzle.getState(), puzzle.getSolvedState())
         tend = timer()
         elapsed_time = tend - tstart
-        print("search complete, number of steps: ", len(solution[0]),
+        print("search complete, number of steps: ", len(solution),
               ". time to complete: ", elapsed_time, "s.")
 
     elif symbol == key.LEFT:
