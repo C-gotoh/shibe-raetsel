@@ -424,7 +424,6 @@ heuristics = [hCostManhattan,
               hCostMhtn2x,
               hCostMhtn1_5x]
 
->>>>>>> 1c074b53d21f5e9b81820e834b184851b4efb1d4
 curHeur = heuristics[0]
 
 # pyglet init
