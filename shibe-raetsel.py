@@ -188,8 +188,12 @@ def hCostManhattan(path, dim):
     return cost  # + len(path)
 
 
-def hCostMhtnFOO(path, dim):
+def hCostMhtn3x(path, dim):
     return hCostManhattan(path, dim) * 3
+def hCostMhtn2x(path, dim):
+    return hCostManhattan(path, dim) * 2
+def hCostMhtn1_5x(path, dim):
+    return hCostManhattan(path, dim) * 1.5
 
 
 # highly used function!
@@ -416,7 +420,9 @@ heuristics = [hCostManhattan,
               hCostMpt,
               hCostToorac,
               hCostLinearConflict,
-              hCostMhtnFOO]
+              hCostMhtn3x,
+              hCostMhtn2x,
+              hCostMhtn1_5x]
 
 curHeur = heuristics[0]
 
