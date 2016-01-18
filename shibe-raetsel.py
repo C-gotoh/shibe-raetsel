@@ -124,16 +124,51 @@ class Search(object):
         print(arg1)
         print(arg2)
 
-
-def heuristicA(path, dim):
-    return 0
-
-
 # highly used function
 def getStatePosition(state, dim, element):
     index = state.index(element)
     return index % dim[0], index // dim[0]
 
+
+def hCostLinearConflict(path, dim):
+    state = path[-1]
+    cost = 0
+    xtimesy = dim[0] * dim[1]
+    global rows, cols
+    for y in range(dim[1]):
+        maxValue = 0
+        for x in range(dim[0]):
+            expectednumber = y * dim[0] + x + 1
+            if expectednumber == xtimesy:
+                # expectednumber = 0
+                continue
+            # for rows
+            value = state[y*dim[0]+x]
+            if value in rows[y] and value != 0:
+                if value >= maxValue:
+                    maxValue = value
+                else:
+                    #print("conflict rows")
+                    cost += 2
+
+            actualposition = getStatePosition(state, dim, expectednumber)
+            manhattanDist = abs(x - actualposition[0])\
+                + abs(y - actualposition[1])
+            cost += manhattanDist
+
+        # for cols
+        maxValue = 0
+        for i in range(dim[1]):
+            value = state[y*dim[0]+x]
+            if value in cols[i]:
+                if value == 0:
+                    continue
+                if value >= maxValue:
+                    maxValue = value
+                else:
+                    #print("conflict cols")
+                    cost += 2
+    return cost  # + len(path)    
 
 # highly used function!
 def hCostManhattan(path, dim):
@@ -150,15 +185,6 @@ def hCostManhattan(path, dim):
             manhattanDist = abs(x - actualposition[0])\
                 + abs(y - actualposition[1])
             cost += manhattanDist
-            # print("expected: " + str(expectednumber))
-            # print("pos: " + str(x) + str(y) + " pos of exp: " +
-            #       str(actualposition[0]) + str(actualposition[1]))
-            # print("cumulated cost: " + str(cost))
-            # Linear Conflict for columns (x): add 2 for each conflict
-            if y == 0 and manhattanDist > 0:
-                cost += 0
-        # Linear Conflict for rows (y): add 2 for each conflict
-        cost += 0
     return cost  # + len(path)
 
 
@@ -206,24 +232,6 @@ def hCostMpt(path, dim):
                 cost += 1
     return cost  # + len(path)
 
-
-# highly used function!
-# heuristic funktion: X-Y
-def hCostYX(path, dim):
-    state = path[-1]
-    cost = 0
-    for x in range(dim[0]):
-        for y in range(dim[1]):
-            val = y * dim[0] + x
-            expectedNumber = val + 1
-            if expectedNumber == dim[0]*dim[1]:
-                continue
-            actualnumber = state[val]
-            if expectedNumber != actualnumber:
-                cost += 1
-    return cost + len(path)
-
-
 # highly used function!
 def getNeighborStates(state, dim):
     # precalc
@@ -251,7 +259,7 @@ def getNeighborStates(state, dim):
 
     # down:
     iswap = izero - dim[0]
-    if izero_mod == iswap % dim[1] and iswap > 0:
+    if izero_mod == iswap % dim[1] and iswap >= 0:
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
@@ -347,15 +355,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
 def idaSearch(startPos, endPos, _dataStructure=Queue,
                 _heuristic=False, _debug=False):
     visited = set()
-    max_frontier_len = 0
-
-    global added_nodes
-    global heuristic_calls
-    heuristic_calls = 0
-    added_nodes = 0
-
-    #bound = currentHeuristic([startPos],puzzle.dim)
-    bound = 2
+    bound = curHeur([startPos],puzzle.dim)
     tstart = timer()
     
     while True:
@@ -378,8 +378,6 @@ def idaIteration(path, lenpath, bound, endPos):
         if str(node) not in visited:
             visited.add(str(node))
             if estlen > bound:
-                #print("skipping")
-                #print(len(frontier))
                 continue
             if node == endPos:
                 return path
@@ -389,22 +387,28 @@ def idaIteration(path, lenpath, bound, endPos):
                 new_path = path[:]
                 new_path.append(neighbor)
                 frontier.append(new_path)
+
+    print("Visited: " + str(len(visited)))
     return None
 
 
 def getHint(puzzle):
-    # TODO: print or display real hint instead of puzzle
-    global solution
+    global hint
+    global arrow_keys_reversed
     if puzzle.isSolved():
         print("hint: do nothing")
     else:
         print("calculating hint ...")
-        solution, a, b = genericSearch(puzzle.getState(),
-                                 puzzle.getSolvedState(),
-                                 _dataStructure=PriorityQueue,
-                                 _heuristic=True)[0]
-        if len(solution) != 0:
-            printPuzzle(solution[1])
+        solution = idaSearch(puzzle.getState(), puzzle.getSolvedState())
+        if solution != None:
+            if len(solution[0]) != 0:
+                hint = solution[0][0]
+                hints = ["left", "up", "down", "right"]
+                if arrow_keys_reversed:
+                    hints.reverse()
+                    return hints[int(hint)]
+                else:
+                    return hints[int(hint)]
 
 global window, maxdimension, bgimg, puzzle,\
        solution, curHeur, heuristics,\
@@ -415,9 +419,12 @@ arrow_keys_reversed = False
 heuristics = [hCostManhattan,
               hCostMpt,
               hCostToorac,
+              hCostLinearConflict,
               hCostMhtn3x,
               hCostMhtn2x,
               hCostMhtn1_5x]
+
+>>>>>>> 1c074b53d21f5e9b81820e834b184851b4efb1d4
 curHeur = heuristics[0]
 
 # pyglet init
@@ -456,6 +463,7 @@ def on_resize(width, height):
 def on_draw():
     global puzzle
     global curHeur
+    global hint
 
     # ---- Background respond to solved state
     if puzzle.isSolved():
@@ -517,12 +525,20 @@ def on_draw():
                               anchor_y='center').draw()
 
     # ---- Draw current heuristic cost
-    pyglet.text.Label("Cost " + str(curHeur(('', puzzle.getState()),
+    pyglet.text.Label("Cost: " + str(curHeur(('', puzzle.getState()),
                                     puzzle.dim)),
                       font_name='Times New Roman',
                       font_size=font_small,
                       x=window.width - font_large*3,
                       y=window.height-font_large,
+                      anchor_x='left',
+                      anchor_y='center').draw()
+    # ---- Draw Hint
+    pyglet.text.Label("Hint: " + str(hint),
+                      font_name='Times New Roman',
+                      font_size=font_small,
+                      x=window.width - font_large*3,
+                      y=window.height-font_large*3,
                       anchor_x='left',
                       anchor_y='center').draw()
 
@@ -531,6 +547,7 @@ def on_draw():
                 "Arrowkeys to move tiles",
                 "'b' - search BFS",
                 "'a' - search A*",
+                "'i' - search IDA*",
                 "'r' - generate random puzzle",
                 "'ENTER' - reset puzzle",
                 "'SPACE' - step through solution",
@@ -552,7 +569,7 @@ def on_draw():
 def on_key_press(symbol, modifiers):
     global solution, puzzle,\
            curHeur, heuristics,\
-           arrow_keys_reversed
+           arrow_keys_reversed, hint
 
     if symbol == key.B:
         print("searching...")
@@ -574,7 +591,7 @@ def on_key_press(symbol, modifiers):
         solution, a, b = genericSearch(puzzle.getState(),
                                  puzzle.getSolvedState(),
                                  _dataStructure=PriorityQueue,
-                                 _heuristic=True)
+                                 _heuristic=True,_debug=True)
 
         tend = timer()
         elapsed_time = tend - tstart
@@ -621,7 +638,7 @@ def on_key_press(symbol, modifiers):
               str(curHeur(('', puzzle.getState()), puzzle.dim)))
 
     elif symbol == key.H:
-        getHint(puzzle)
+        hint = getHint(puzzle)
 
     elif symbol == key.R:
 
@@ -674,15 +691,20 @@ def on_key_press(symbol, modifiers):
         arrow_keys_reversed = not arrow_keys_reversed
 
 if __name__ == '__main__':
-    global puzzle, solution, cols
+    global puzzle, solution, cols, rows
 
     puzzle = Puzzle(4, 4)
     solution = ('', puzzle.getState())
+    hint = ""
 
     cols = []
     for x in range(puzzle.dim[0]):
         for y in range(puzzle.dim[1]):
             cols.append([])
             cols[x].append(puzzle.getState()[y * puzzle.dim[0] + x])
-
+    rows = []
+    for y in range(puzzle.dim[1]):
+        for x in range(puzzle.dim[0]):
+            rows.append([])
+            rows[y].append(puzzle.getState()[y * puzzle.dim[0] + x])
     pyglet.app.run()
