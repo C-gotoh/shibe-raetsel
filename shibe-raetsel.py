@@ -457,7 +457,6 @@ global window, maxdimension, bgimg, puzzle,\
 arrow_keys_reversed = False
 
 heuristics = [hCostManhattan,
-              hCostYX,
               hCostMpt,
               hCostToorac,
               hCostLinearConflict,
