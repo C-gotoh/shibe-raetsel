@@ -453,6 +453,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue, _debug=False):
             visited.add(str(head))
 
             if head == end_state:
+                print(len(visited))
                 return (path[0], start_pos), len(visited), max_frontier
 
             if _debug and len(visited) % 10000 == 0:
