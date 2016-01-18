@@ -7,6 +7,7 @@ from pyglet.window import key
 from queue import Queue, PriorityQueue  # ,LifoQueue
 import random
 from timeit import default_timer as timer
+import datetime
 
 # from heapq import heappop, heappush
 # import cProfile
@@ -78,10 +79,14 @@ class Puzzle(object):
             print(element)
 
     def calchint(self):
+        global curHeur
+        tmp = curHeur 
+        curHeur = hCostMhtn2x
         if not self.solved:
-            solution, a = puzzle.runIDA(_heur=hCostMhtn2x)
+            solution = puzzle.runAStar()
 
             if solution is not None and len(solution[0]) != 0:
+                print(solution)
                 self.hint = solution[0][0]
                 hints = ["left", "up", "down", "right"]
 
@@ -89,6 +94,7 @@ class Puzzle(object):
                     hints.reverse()
 
                 self.hint = hints[int(solution[0][0])]
+        curHeur = tmp
 
     def sethint(self, new_hint):
         self.hint = new_hint
@@ -274,7 +280,8 @@ class Puzzle(object):
         return solution #, elapsed_time
 
     # start a A* on the current state of game
-    def runAStar(self, heur, _debug=False):
+    def runAStar(self, _debug=False):
+        global curHeur
         start = self.boardcopy()
         goal = self.initcopy()
 
@@ -282,7 +289,7 @@ class Puzzle(object):
 
         tstart = timer()
 
-        solution, a, b = genericSearch(start, goal, heur,
+        solution, a, b = genericSearch(start, goal, curHeur,
                                        _dataStructure=PriorityQueue,
                                        _debug=_debug)
 
@@ -295,7 +302,8 @@ class Puzzle(object):
         return solution #, elapsed_time
 
     # start a IDA on the current state of game
-    def runIDA(self, heur, _debug=False):
+    def runIDA(self, _debug=False):
+        global curHeur
         start = self.boardcopy()
         goal = self.initcopy()
 
@@ -303,7 +311,7 @@ class Puzzle(object):
 
         tstart = timer()
 
-        solution = idaSearch(start, goal, heur, _debug=_debug)
+        solution = idaSearch(start, goal, curHeur, _debug=_debug)
 
         tend = timer()
         elapsed_time = tend - tstart
@@ -519,6 +527,8 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
     # heappush(heap, item)
     frontier.put(item)
 
+    start = datetime.datetime.now()
+
     # while True:
     while not frontier.empty():
         max_frontier = max(frontier.qsize(), max_frontier)
@@ -540,12 +550,17 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
                 return (path[0], start_pos), len(visited), max_frontier
 
             if _debug and len(visited) % 10000 == 0:
+                stop = datetime.datetime.now()
+                delta = (stop - start).microseconds / 1000
+                deltaSecs = (stop - start).seconds
+                start = datetime.datetime.now()
                 print("----------\n" +
                       "Heur. calls:   " + str(heuristic_calls) + "\n" +
                       "Visited nodes: " + str(len(visited)) + "\n" +
                       "Max. frontier: " + str(max_frontier) + "\n" +
                       "Cur Distance:  " + str(hcosts) + " | " +
                       str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
+                print("Used Time: {}s {}ms".format(deltaSecs, delta))
 
             left, up, down, right = getNeighborStates(head, puzzle.dim)
 
@@ -750,7 +765,7 @@ def on_key_press(symbol, modifiers):
         puzzle.solve(puzzle.runBFS(debug, _heur=curHeur))
 
     elif symbol == key.A:
-        puzzle.solve(puzzle.runAStar(debug, _heur=curHeur))
+        puzzle.solve(puzzle.runAStar(debug))
 
     elif symbol == key.X:
         debug = not debug
@@ -839,12 +854,12 @@ heuristics = [hCostManhattan,
 # toggle heuristics (key E)
 # toggle debug (key X)
 
-
+curHeur = heuristics[0]
 if __name__ == '__main__':
     global puzzle  
     puzzle = Puzzle(4, 4)
 
-    global curHeur
-    curHeur = heuristics[0]
+    #global curHeur
+    
 
     pyglet.app.run()
