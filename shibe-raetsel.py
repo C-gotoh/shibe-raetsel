@@ -203,6 +203,10 @@ def hCostManhattan(path, dim):
     return cost  # + len(path)
 
 
+def hCostMhtnFOO(path, dim):
+    return hCostManhattan(path, dim) * 3
+
+
 # highly used function!
 # heuristic function: Toorac = tiles out of row and column
 def hCostToorac(path, dim):
@@ -378,60 +382,49 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
 
 
 def idaSearch(startPos, endPos, _dataStructure=Queue,
-              _heuristic=False, _debug=False):
+                _heuristic=False, _debug=False):
+    visited = set()
+    max_frontier_len = 0
+
     global added_nodes
     global heuristic_calls
     heuristic_calls = 0
     added_nodes = 0
 
-    cost = curHeur(("", startPos),puzzle.dim)
+    #bound = currentHeuristic([startPos],puzzle.dim)
     bound = 2
     tstart = timer()
     
     while True:
-        path = idaIteration(("",startPos), 1, bound, endPos)
-        if path is not None:
+        path = idaIteration([startPos], 1, bound, endPos)
+        if path != None:
             return path
         tnow = timer()
         elapsed_time = tnow - tstart
         print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)")
         bound += 1
 
-
 def idaIteration(path, lenpath, bound, endPos):
     visited = set()
     frontier = []
     frontier.append(path)
     while frontier:
-        #print(frontier)
         path = frontier.pop()
         node = path[-1]
-        estlen = len(path[0]) + curHeur(path, puzzle.dim)
+        estlen = len(path) + curHeur([node],puzzle.dim)
         if str(node) not in visited:
             visited.add(str(node))
             if estlen > bound:
-                # print("skipping")
-                # print(len(frontier))
+                #print("skipping")
+                #print(len(frontier))
                 continue
             if node == endPos:
                 return path
-
-            left, up, down, right = getNeighborStates(node, puzzle.dim)
-
-            if left is not None:
-                new_path = (path[0] + "0", left)
-                frontier.append(new_path)
-
-            if up is not None:
-                new_path = (path[0] + "1", up)
-                frontier.append(new_path)
-
-            if down is not None:
-                new_path = (path[0] + "2", down)
-                frontier.append(new_path)
-
-            if right is not None:
-                new_path = (path[0] + "3", right)
+            for neighbor in getNeighborStates(node, puzzle.dim):
+                if neighbor is None:
+                    continue
+                new_path = path[:]
+                new_path.append(neighbor)
                 frontier.append(new_path)
 
     print("Visited: " + str(len(visited)))
@@ -467,7 +460,9 @@ heuristics = [hCostManhattan,
               hCostYX,
               hCostMpt,
               hCostToorac,
-              hCostLinearConflict]
+              hCostLinearConflict,
+              hCostMhtnFOO]
+
 curHeur = heuristics[0]
 
 # pyglet init
@@ -660,14 +655,21 @@ def on_key_press(symbol, modifiers):
         solution = ('', puzzle.getState())
 
     elif symbol == key.SPACE:
-        if solution is not None and solution[0] != '':
-            solution = (solution[0][1:],
-                        getNeighborStates(solution[1],
-                                          puzzle.dim)[int(solution[0][0])])
-            puzzle.setField(solution[1])
+        if solution is not None and len(solution) > 0:
+            if  isinstance(solution[0], str):
+                if solution[0] != '':
+                    solution = (solution[0][1:],
+                                getNeighborStates(solution[1],
+                                                  puzzle.dim)[int(solution[0][0])])
+                    puzzle.setField(solution[1])
+                else:
+                    solution = ('', puzzle.getState())
+                    print("No data to solve!")
+            else:
+                puzzle.setField(solution.pop(0))
         else:
             solution = ('', puzzle.getState())
-            print("done")
+            print("No data to solve!")
 
     elif symbol == key.C:
         print("Absolute cost: " +
