@@ -380,6 +380,7 @@ def idaIteration(path, lenpath, bound, endPos):
             if estlen > bound:
                 continue
             if node == endPos:
+                print("Visited: " + str(len(visited)))
                 return path
             for neighbor in getNeighborStates(node, puzzle.dim):
                 if neighbor is None:
