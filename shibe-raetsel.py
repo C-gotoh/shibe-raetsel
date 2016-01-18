@@ -124,11 +124,6 @@ class Search(object):
         print(arg1)
         print(arg2)
 
-
-def heuristicA(path, dim):
-    return 0
-
-
 # highly used function
 def getStatePosition(state, dim, element):
     index = state.index(element)
@@ -153,7 +148,6 @@ def hCostLinearConflict(path, dim):
                 if value >= maxValue:
                     maxValue = value
                 else:
-                    #print(value)
                     #print("conflict rows")
                     cost += 2
 
@@ -191,15 +185,6 @@ def hCostManhattan(path, dim):
             manhattanDist = abs(x - actualposition[0])\
                 + abs(y - actualposition[1])
             cost += manhattanDist
-            # print("expected: " + str(expectednumber))
-            # print("pos: " + str(x) + str(y) + " pos of exp: " +
-            #       str(actualposition[0]) + str(actualposition[1]))
-            # print("cumulated cost: " + str(cost))
-            # Linear Conflict for columns (x): add 2 for each conflict
-            if y == 0 and manhattanDist > 0:
-                cost += 0
-        # Linear Conflict for rows (y): add 2 for each conflict
-        cost += 0
     return cost  # + len(path)
 
 
@@ -242,24 +227,6 @@ def hCostMpt(path, dim):
             if expectedNumber != actualnumber:
                 cost += 1
     return cost  # + len(path)
-
-
-# highly used function!
-# heuristic funktion: X-Y
-def hCostYX(path, dim):
-    state = path[-1]
-    cost = 0
-    for x in range(dim[0]):
-        for y in range(dim[1]):
-            val = y * dim[0] + x
-            expectedNumber = val + 1
-            if expectedNumber == dim[0]*dim[1]:
-                continue
-            actualnumber = state[val]
-            if expectedNumber != actualnumber:
-                cost += 1
-    return cost + len(path)
-
 
 # highly used function!
 def getNeighborStates(state, dim):
@@ -384,15 +351,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue,
 def idaSearch(startPos, endPos, _dataStructure=Queue,
                 _heuristic=False, _debug=False):
     visited = set()
-    max_frontier_len = 0
-
-    global added_nodes
-    global heuristic_calls
-    heuristic_calls = 0
-    added_nodes = 0
-
-    #bound = currentHeuristic([startPos],puzzle.dim)
-    bound = 2
+    bound = curHeur([startPos],puzzle.dim)
     tstart = timer()
     
     while True:
@@ -415,8 +374,6 @@ def idaIteration(path, lenpath, bound, endPos):
         if str(node) not in visited:
             visited.add(str(node))
             if estlen > bound:
-                #print("skipping")
-                #print(len(frontier))
                 continue
             if node == endPos:
                 return path
@@ -432,7 +389,6 @@ def idaIteration(path, lenpath, bound, endPos):
 
 
 def getHint(puzzle):
-    # TODO: print or display real hint instead of puzzle
     global hint
     global arrow_keys_reversed
     if puzzle.isSolved():
@@ -744,5 +700,4 @@ if __name__ == '__main__':
         for x in range(puzzle.dim[0]):
             rows.append([])
             rows[y].append(puzzle.getState()[y * puzzle.dim[0] + x])
-    print(rows)
     pyglet.app.run()
