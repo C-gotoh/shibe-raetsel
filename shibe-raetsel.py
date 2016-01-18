@@ -11,11 +11,9 @@ from timeit import default_timer as timer
 # from heapq import heappop, heappush
 # import cProfile
 
-# swap the directions
-arrow_keys_reversed = False
-
 # will be initialized elsewhere
 heuristics = []
+global curHeur
 curHeur = None
 
 # be a little bit verbose
@@ -42,11 +40,11 @@ font_large = 32
 font_small = 14
 font_number = 20
 
-# Functions
 
-
+# Objects of class Puzzle represent a singe game
 class Puzzle(object):
 
+    # Initialize with dimension of game
     def __init__(self, dimX, dimY):
         self.dim = (dimX, dimY)
 
@@ -61,14 +59,41 @@ class Puzzle(object):
         for x in range(self.dim[0]):
             for y in range(self.dim[1]):
                 self.columnlist.append([])
-                self.columnlist[x].append(self.boardcopy()[y * self.dim[0] + x])
+                self.columnlist[x].append(self.boardcopy()[y*self.dim[0] + x])
 
         self.rowlist = []
         for y in range(self.dim[1]):
             for x in range(self.dim[0]):
                 self.rowlist.append([])
-                self.rowlist[y].append(self.boardcopy()[y * self.dim[0] + x])
+                self.rowlist[y].append(self.boardcopy()[y*self.dim[0] + x])
 
+        self.twisted = False
+        self.hint = ''
+
+    def twistmoves(self):
+        self.twisted = not self.twisted
+
+    def debugsolution():
+        for element in puzzle.solution:
+            print(element)
+
+    def calchint(self):
+        if not self.solved:
+            solution, a = puzzle.runIDA(_heur=hCostMhtn2x)
+
+            if solution is not None and len(solution[0]) != 0:
+                self.hint = solution[0][0]
+                hints = ["left", "up", "down", "right"]
+
+                if puzzle.twisted:
+                    hints.reverse()
+
+                self.hint = hints[int(solution[0][0])]
+
+    def sethint(self, new_hint):
+        self.hint = new_hint
+
+    # Set the game to solved state
     def reset(self):
         self.board = self.initcopy()
 
@@ -77,6 +102,12 @@ class Puzzle(object):
 
         self.solution = ('', self.boardcopy())
 
+    #
+    def solve(self, solution):
+        self.solution = solution
+
+    # If there is a solution,
+    # go one strep throu it
     def step(self):
         if self.solution is None or len(self.solution) == 1 or\
                 self.solution[0] == '':
@@ -95,19 +126,24 @@ class Puzzle(object):
 
         return None
 
+    # return a copy of solved game state
     def initcopy(self):
         return self.initstate[:]
 
+    # return a copy of actual game state
     def boardcopy(self):
         return self.board[:]
 
+    # return index of given number in game
     def index(self, element):
         return self.board.index(element) % self.dim[0],\
                self.board.index(element) // self.dim[0]
 
+    # return element at given coords
     def tile(self, x, y):
         return self.board[y*self.dim[0] + x]
 
+    # set the game state and check for solvability
     def update(self, newfield):
         self.board = newfield[:]
 
@@ -119,7 +155,8 @@ class Puzzle(object):
 
         self.solution = ('', self.boardcopy())
 
-    def randomize(self, _bound=0):
+    # ...
+    def randomize(self, _heur=lambda p, d: 0, _bound=0):
         iter_max = 10000
         while iter_max > 0:
             random.shuffle(self.board)
@@ -127,13 +164,14 @@ class Puzzle(object):
             self.checkparity()
             if self.solvable:
                 if _bound != 0 and\
-                   curHeur(('', self.boardcopy()), self.dim) > _bound:
+                   _heur(('', self.boardcopy()), self.dim) > _bound:
                     iter_max -= 1
                     continue
                 break
 
         self.solution = ('', self.boardcopy())
 
+    # is the puzzle solvable
     def checkparity(self):
         inversions = 0
         for num in self.board:
@@ -158,11 +196,12 @@ class Puzzle(object):
 
         return None
 
-    def moveleft(self, reversed):
+    # swap the empty tile with left neighbor
+    def moveleft(self):
         self.solution = ('', self.boardcopy())
 
         new = list(getNeighborStates(self.board, self.dim))
-        if reversed:
+        if self.twisted:
             new.reverse()
         new = new[0]
         if new is not None:
@@ -171,11 +210,12 @@ class Puzzle(object):
 
         return None
 
-    def moveup(self, reversed):
+    # swap the empty tile with up neighbor
+    def moveup(self):
         self.solution = ('', self.boardcopy())
 
         new = list(getNeighborStates(self.board, self.dim))
-        if reversed:
+        if self.twisted:
             new.reverse()
         new = new[1]
         if new is not None:
@@ -184,11 +224,12 @@ class Puzzle(object):
 
         return None
 
-    def movedown(self, reversed):
+    # swap the empty tile with down neighbor
+    def movedown(self):
         self.solution = ('', self.boardcopy())
 
         new = list(getNeighborStates(self.board, self.dim))
-        if reversed:
+        if self.twisted:
             new.reverse()
         new = new[2]
         if new is not None:
@@ -197,11 +238,12 @@ class Puzzle(object):
 
         return None
 
-    def moderight(self, reversed):
+    # swap the empty tile with right neighbor
+    def moderight(self):
         self.solution = ('', self.boardcopy())
 
         new = list(getNeighborStates(self.board, self.dim))
-        if reversed:
+        if self.twisted:
             new.reverse()
         new = new[3]
         if new is not None:
@@ -210,31 +252,37 @@ class Puzzle(object):
 
         return None
 
+    # start a BFS on the current state of game
     def runBFS(self, _debug=False):
         start = self.boardcopy()
         goal = self.initcopy()
 
+        print("searching (BFS)")
+
         tstart = timer()
 
-        solution, a, b = genericSearch(start, goal,
+        solution, a, b = genericSearch(start, goal, None,
                                        _dataStructure=Queue,
                                        _debug=_debug)
 
         tend = timer()
         elapsed_time = tend - tstart
 
-        print("BFS is complete. It took", elapsed_time, "s. Solution has ", len(solution[0]),
-              " steps. Heuristic: ", str(curHeur).split()[1])
+        print("BFS is complete. It took", elapsed_time, "s. Solution has ",
+              len(solution[0]), " steps. Heuristic: ", str(curHeur).split()[1])
 
-        return solution, elapsed_time
+        return solution #, elapsed_time
 
-    def runAStar(self, _debug=False):
+    # start a A* on the current state of game
+    def runAStar(self, heur, _debug=False):
         start = self.boardcopy()
         goal = self.initcopy()
 
+        print("searching (A* | )")
+
         tstart = timer()
 
-        solution, a, b = genericSearch(start, goal,
+        solution, a, b = genericSearch(start, goal, heur,
                                        _dataStructure=PriorityQueue,
                                        _debug=_debug)
 
@@ -244,15 +292,18 @@ class Puzzle(object):
         print("A* is complete. It took", elapsed_time, "s. Solution has ", len(solution[0]),
               " steps. Heuristic: ", str(curHeur).split()[1])
 
-        return solution, elapsed_time
+        return solution #, elapsed_time
 
-    def runIDA(self, _debug=False):
+    # start a IDA on the current state of game
+    def runIDA(self, heur, _debug=False):
         start = self.boardcopy()
         goal = self.initcopy()
 
+        print("searching (IDA*)")
+
         tstart = timer()
 
-        solution = idaSearch(start, goal, _debug=_debug)
+        solution = idaSearch(start, goal, heur, _debug=_debug)
 
         tend = timer()
         elapsed_time = tend - tstart
@@ -260,9 +311,15 @@ class Puzzle(object):
         print("IDA is complete. It took", elapsed_time, "s. Solution has ", len(solution),
               " steps. Heuristic: ", str(curHeur).split()[1])
 
-        return solution, elapsed_time
+        return solution #, elapsed_time
 
 
+# ######################## heuristic functions
+
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# 
 def hCostLinearConflict(path, dim):
     state = path[-1]
     cost = 0
@@ -304,6 +361,9 @@ def hCostLinearConflict(path, dim):
 
 
 # highly used function!
+#
+# for a given path, calc the heuristic costs
+# 
 def hCostManhattan(path, dim):
     state = path[-1]
     cost = 0
@@ -321,19 +381,33 @@ def hCostManhattan(path, dim):
     return cost  # + len(path)
 
 
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
 def hCostMhtn3x(path, dim):
     return hCostManhattan(path, dim) * 3
 
 
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
 def hCostMhtn2x(path, dim):
     return hCostManhattan(path, dim) * 2
 
 
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
 def hCostMhtn1_5x(path, dim):
     return hCostManhattan(path, dim) * 1.5
 
 
 # highly used function!
+#
+# for a given path, calc the heuristic costs
 # heuristic function: Toorac = tiles out of row and column
 def hCostToorac(path, dim):
     state = path[1]
@@ -354,6 +428,8 @@ def hCostToorac(path, dim):
 
 
 # highly used function!
+#
+# for a given path, calc the heuristic costs
 # heuristic funktion: Mpt = Misplaced Tiles
 def hCostMpt(path, dim):
     state = path[-1]
@@ -370,12 +446,16 @@ def hCostMpt(path, dim):
 
 
 # highly used function!
+#
+# for a element give coords (in state)
 def getStatePosition(state, dim, element):
     index = state.index(element)
     return index % dim[0], index // dim[0]
 
 
 # highly used function!
+#
+# for a given state give possible next states
 def getNeighborStates(state, dim):
     # precalc
     izero = state.index(0)
@@ -421,7 +501,10 @@ def getNeighborStates(state, dim):
     return (left, up, down, right)
 
 
-def genericSearch(start_pos, end_state, _dataStructure=Queue, _debug=False):
+# Do a search without ID
+def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
+                  _dataStructure=Queue, _debug=False):
+
     visited = set()
     frontier = _dataStructure()
     # heap = []
@@ -431,7 +514,7 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue, _debug=False):
     global heuristic_calls
     heuristic_calls = 0
 
-    item = (curHeur(('', start_pos), puzzle.dim), 1, ('', start_pos))
+    item = (_heur(('', start_pos), puzzle.dim), 1, ('', start_pos))
 
     # heappush(heap, item)
     frontier.put(item)
@@ -467,25 +550,25 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue, _debug=False):
 
             if left is not None:
                 new_path = (path[0] + "0", left)
-                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if up is not None:
                 new_path = (path[0] + "1", up)
-                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if down is not None:
                 new_path = (path[0] + "2", down)
-                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if right is not None:
                 new_path = (path[0] + "3", right)
-                frontier.put((curHeur(new_path, puzzle.dim) + plength,
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
@@ -494,28 +577,32 @@ def genericSearch(start_pos, end_state, _dataStructure=Queue, _debug=False):
     return 0, len(visited), max_frontier
 
 
-def idaSearch(startPos, endPos, _dataStructure=Queue, _debug=False):
+# Do a search with IDA
+def idaSearch(startPos, endPos, _heur=lambda p, d: 0,
+              _dataStructure=Queue, _debug=False):
     visited = set()
-    bound = curHeur([startPos],puzzle.dim)
+    bound = _heur([startPos], puzzle.dim)
     tstart = timer()
     
     while True:
-        path = idaIteration([startPos], 1, bound, endPos)
-        if path != None:
+        path = idaIteration([startPos], 1, bound, endPos, _heur)
+        if path is not None:
             return path
         tnow = timer()
         elapsed_time = tnow - tstart
         print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)")
         bound += 1
 
-def idaIteration(path, lenpath, bound, endPos):
+
+# Used by IDA to search until a given bound
+def idaIteration(path, lenpath, bound, endPos, heur):
     visited = set()
     frontier = []
     frontier.append(path)
     while frontier:
         path = frontier.pop()
         node = path[-1]
-        estlen = len(path) + curHeur([node],puzzle.dim)
+        estlen = len(path) + heur([node], puzzle.dim)
         if str(node) not in visited:
             visited.add(str(node))
             if estlen > bound:
@@ -533,26 +620,6 @@ def idaIteration(path, lenpath, bound, endPos):
     return None
 
 
-def getHint(puzzle):
-    global hint, arrow_keys_reversed, curHeur
-    if not puzzle.solved:
-        selectedHeur = curHeur
-        curHeur = hCostMhtn2x
-
-        solution, a = puzzle.runIDA()
-
-        curHeur = selectedHeur
-
-        if solution is not None and len(solution[0]) != 0:
-            hint = solution[0][0]
-            hints = ["left", "up", "down", "right"]
-
-            if arrow_keys_reversed:
-                hints.reverse()
-
-            return hints[int(solution[0][0])]
-
-
 @window.event
 def on_resize(width, height):
     global maxdimension
@@ -567,7 +634,6 @@ def on_resize(width, height):
 def on_draw():
     global puzzle
     global curHeur
-    global hint
 
     # ---- Background respond to solved state
     if puzzle.solved:
@@ -634,7 +700,7 @@ def on_draw():
                       anchor_x='left',
                       anchor_y='center').draw()
     # ---- Draw Hint
-    pyglet.text.Label("Hint: " + str(hint),
+    pyglet.text.Label("Hint: " + str(puzzle.hint),
                       font_name='Times New Roman',
                       font_size=font_small,
                       x=window.width - font_large*3,
@@ -650,6 +716,7 @@ def on_draw():
                       y=window.height-font_large*6,
                       anchor_x='left',
                       anchor_y='center').draw()
+
     # ---- Draw controls
     controls = ["Controls: ",
                 "Arrowkeys to move tiles",
@@ -675,24 +742,13 @@ def on_draw():
 
 @window.event
 def on_key_press(symbol, modifiers):
-    global puzzle, curHeur, heuristics,\
-           arrow_keys_reversed, hint, debug
+    global puzzle, curHeur, heuristics, debug
 
     if symbol == key.B:
-        print("searching...")
-
-        puzzle.solution, elapsed_time = puzzle.runBFS(debug)
-
-        print("search complete, number of steps: ", len(puzzle.solution[0]),
-              ". time to complete: ", elapsed_time, "s.")
+        puzzle.solve(puzzle.runBFS(debug, _heur=curHeur))
 
     elif symbol == key.A:
-        print("searching...")
-
-        puzzle.solution, elapsed_time = puzzle.runAStar(debug)
-
-        print("search complete, number of steps: ", len(puzzle.solution[0]),
-              ". time to complete: ", elapsed_time, "s.")
+        puzzle.solve(puzzle.runAStar(debug, _heur=curHeur))
 
     elif symbol == key.X:
         debug = not debug
@@ -711,38 +767,38 @@ def on_key_press(symbol, modifiers):
               str(curHeur(('', puzzle.boardcopy()), puzzle.dim)))
 
     elif symbol == key.H:
-        hint = getHint(puzzle)
+        puzzle.calchint()
 
     elif symbol == key.R:
-        puzzle.randomize()
+        puzzle.randomize(_heur=curHeur)
 
     elif symbol == key.T:
-        puzzle.randomize(20)
+        puzzle.randomize(_heur=curHeur, _bound=20)
 
     elif symbol == key.E:
         new_index = (heuristics.index(curHeur)+1) % len(heuristics)
         curHeur = heuristics[new_index]
 
     elif symbol == key.I:
-        puzzle.solution, elapsed_time = puzzle.runIDA()
+        puzzle.solve(puzzle.runIDA())
 
     elif symbol == key.LEFT:
-        puzzle.moveleft(arrow_keys_reversed)
+        puzzle.moveleft()
 
     elif symbol == key.RIGHT:
-        puzzle.moderight(arrow_keys_reversed)
+        puzzle.moderight()
 
     elif symbol == key.UP:
-        puzzle.moveup(arrow_keys_reversed)
+        puzzle.moveup()
 
     elif symbol == key.DOWN:
-        puzzle.movedown(arrow_keys_reversed)
+        puzzle.movedown()
 
     elif symbol == key.Y:
-        arrow_keys_reversed = not arrow_keys_reversed
+        puzzle.twistmoves()
 
     elif symbol == key.P:
-        print(puzzle.solution)
+        puzzle.debugsolution()
 
 heuristics = [hCostManhattan,
               hCostMpt,
@@ -752,13 +808,41 @@ heuristics = [hCostManhattan,
               hCostMhtn2x,
               hCostMhtn1_5x]
 
+# searches = [runBFS,
+#             runAStar,
+#             runIDA]
+
+# keys = {
+#     key.B:     (lambda: puzzle.runBFS(debug, _heur=curHeur), ""),
+#     key.A:     (lambda: puzzle.runAStar(debug, _heur=curHeur), ""),
+#     key.X:     (lambda: , ""),
+#     key.ENTER: (lambda: puzzle.reset(), ""),
+#     key.Q:     (lambda: puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11]), ""),
+#     key.SPACE: (lambda: puzzle.step(), ""),
+#     key.C:     (lambda: print("Absolute cost: " + str(curHeur(('', puzzle.boardcopy()), puzzle.dim))), ""),
+#     key.H:     (lambda: puzzle.calchint(), ""),
+#     key.R:     (lambda: puzzle.randomize(_heur=curHeur), ""),
+#     key.T:     (lambda: puzzle.randomize(_heur=curHeur, _bound=20), ""),
+#     key.E:     (lambda: , ""),
+#     key.I:     (lambda: puzzle.solve(puzzle.runIDA()), ""),
+#     key.LEFT:  (lambda: puzzle.moveleft(), ""),
+#     key.RIGHT: (lambda: puzzle.moveright(), ""),
+#     key.UP:    (lambda: puzzle.moveup(), ""),
+#     key.DOWN:  (lambda: puzzle.movedown(), ""),
+#     key.Y:     (lambda: puzzle.twistmoves(), ""),
+#     key.P:     (lambda: puzzle.debugsolution(), "")}
+
+# Into puzzle:
+# make hint depended of solution
+# toggle heuristics (key E)
+# toggle debug (key X)
+
+
 if __name__ == '__main__':
-    global puzzle, curHeur
-
-    curHeur = heuristics[0]
-
+    global puzzle  
     puzzle = Puzzle(4, 4)
 
-    hint = ""
+    global curHeur
+    curHeur = heuristics[0]
 
     pyglet.app.run()
