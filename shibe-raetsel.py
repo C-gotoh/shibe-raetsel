@@ -75,7 +75,7 @@ class Puzzle(object):
             print(element)
 
     def heuristic(self, heuristic):
-        return heuristic.run(('', self.boardcopy()), self.dim)
+        return heuristic.run(self.state(), self.dim)
 
     def debugheuristic(self):
         print("Heuristic cost: " + str(self.heuristic()))
@@ -111,7 +111,7 @@ class Puzzle(object):
         elif isinstance(solution, str):
             self.solution = solution
         else:
-            self.solution = solution
+            self.solution = pathConv(solution, self.dim)[0]
 
         self.calchint()
 
@@ -133,7 +133,7 @@ class Puzzle(object):
             # TODO try-catch to filter out illegal moves
             self.update(getNeighborStates(
                                 self.board,
-                                self.dim)[int(move)], _sol = rest)
+                                self.dim)[int(move)], _sol=rest)
         else:
             # this case is for old solution types
             self.update(self.solution.pop(0))
@@ -172,8 +172,6 @@ class Puzzle(object):
 
     # ...
     def randomize(self, _heur=lambda p, d: 0, _bound=0):
-        # BROKEN
-        # TODO
         iter_max = 10000
         while iter_max > 0:
             board = self.boardcopy()
@@ -183,7 +181,7 @@ class Puzzle(object):
 
             if self.solvable:
                 if _bound != 0 and\
-                   _heur(('', self.boardcopy()), self.dim) > _bound:
+                   _heur(self.state(), self.dim) > _bound:
                     iter_max -= 1
                     continue
                 break
@@ -257,11 +255,12 @@ class Puzzle(object):
         h_function = heuristicObject.function
 
         print("Searching with " + s_name + "\n"
-              "    Heuristic function: " + h_name + "\n"+
+              "    Heuristic function: " + h_name + "\n" +
               "    Debug is " + str(_debug))
 
         if _debug:
-            cProfile.run('solution, time = searchObject.run(start, goal, h_function, True)')
+            cProfile.run('solution, time = searchObject.run(start,' +
+                         'goal, h_function, True)')
         else:
             solution, time = searchObject.run(start, goal, h_function, False)
 
@@ -273,24 +272,24 @@ class Puzzle(object):
         return solution
 
     def state(self):
-        return ('', self.boardcopy()), self.dim
+        return self.state()
 
 
 class Search(object):
     def __init__(self, name, _frontier=None):
         self.name = name
-        self.frontier = _frontier # ida is None,
+        self.frontier = _frontier  # ida is None,
         return None
 
     def run(self, start, goal, f_heur, _debug=False):
         dataStruc = self.frontier
 
-        if self.frontier is None: # this is an ID search
+        if self.frontier is None:  # this is an ID search
             tstart = timer()
             solution = idaSearch(start, goal, f_heur,
                                  _debug=_debug)
             tend = timer()
-        else:                # this is a normal search
+        else:                      # this is a normal search
             tstart = timer()
             solution = genericSearch(start, goal, f_heur, dataStruc,
                                      _debug=_debug)
@@ -311,6 +310,22 @@ class Heuristic(object):
         return self.function(state, dim)
 
 
+# converts a given path in ida format
+# to a string of moves plus start
+def pathConv(path, dim):
+    genpath = ""
+    idapath = path[:]
+    start = idapath[0]
+    print(idapath)
+
+    while len(idapath) > 1:
+        possible = getNeighborStates(idapath.pop(0), dim)
+        current = idapath[0]
+        for i in range(4):
+            if current == possible[i]:
+                genpath = genpath + str(i)
+
+    return genpath, start
 
 
 # ######################## heuristic functions
@@ -318,7 +333,7 @@ class Heuristic(object):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# 
+#
 def hCostLinearConflict(path, dim):
     state = path[-1]
     cost = 0
@@ -327,8 +342,7 @@ def hCostLinearConflict(path, dim):
         maxValue = 0
         for x in range(dim[0]):
             expectednumber = y * dim[0] + x + 1
-            if expectednumber == xtimesy:
-                # expectednumber = 0
+            if expectednumber == xtimesy:  # expectednumber = 0
                 continue
             # for rows
             value = state[y*dim[0]+x]
@@ -336,7 +350,6 @@ def hCostLinearConflict(path, dim):
                 if value >= maxValue:
                     maxValue = value
                 else:
-                    #print("conflict rows")
                     cost += 2
 
             actualposition = getStatePosition(state, dim, expectednumber)
@@ -361,7 +374,7 @@ def hCostLinearConflict(path, dim):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# 
+#
 def hCostManhattan(path, dim):
     state = path[-1]
     cost = 0
@@ -790,25 +803,26 @@ def on_key_press(symbol, modifiers):
     #             "'e' - change heuristic function",
     #             "'h' - get a hint for next move"]
 
-keys = {
-    key.B:     (lambda: puzzle.runBFS(heuzr=curHeur, _debug=debug), ""),
-    key.A:     (lambda: puzzle.runAStar(heur=curHeur, _debug=debug), ""),
-    key.X:     (lambda: print(), ""),
-    key.ENTER: (lambda: puzzle.reset(), ""),
-    key.Q:     (lambda: puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11]), ""),
-    key.SPACE: (lambda: puzzle.step(), ""),
-    key.C:     (lambda: print("Absolute cost: " + str(curHeur(('', puzzle.boardcopy()), puzzle.dim))), ""),
-    key.H:     (lambda: puzzle.calchint(), ""),
-    key.R:     (lambda: puzzle.randomize(_heur=curHeur), ""),
-    key.T:     (lambda: puzzle.randomize(_heur=curHeur, _bound=20), ""),
-    key.E:     (lambda: print(), ""),
-    key.I:     (lambda: puzzle.solve(puzzle.runIDA()), ""),
-    key.LEFT:  (lambda: puzzle.moveleft(), ""),
-    key.RIGHT: (lambda: puzzle.moveright(), ""),
-    key.UP:    (lambda: puzzle.moveup(), ""),
-    key.DOWN:  (lambda: puzzle.movedown(), ""),
-    key.Y:     (lambda: puzzle.twistmoves(), ""),
-    key.P:     (lambda: puzzle.debugsolution(), "")}
+# keys = {
+#     key.B:     (lambda: puzzle.runBFS(heuzr=curHeur, _debug=debug), ""),
+#     key.A:     (lambda: puzzle.runAStar(heur=curHeur, _debug=debug), ""),
+#     key.X:     (lambda: print(), ""),
+#     key.ENTER: (lambda: puzzle.reset(), ""),
+#     key.Q:     (lambda: puzzle.update([6, 7, 14, 8, 5, 1, 15, 12,
+#                                        13, 0, 10, 9, 4, 2, 3, 11]), ""),
+#     key.SPACE: (lambda: puzzle.step(), ""),
+#     key.C:     (lambda: print("Absolute cost: " + str(curHeur(puzzle.state(), puzzle.dim))), ""),
+#     key.H:     (lambda: puzzle.calchint(), ""),
+#     key.R:     (lambda: puzzle.randomize(_heur=curHeur), ""),
+#     key.T:     (lambda: puzzle.randomize(_heur=curHeur, _bound=20), ""),
+#     key.E:     (lambda: print(), ""),
+#     key.I:     (lambda: puzzle.solve(puzzle.runIDA()), ""),
+#     key.LEFT:  (lambda: puzzle.moveleft(), ""),
+#     key.RIGHT: (lambda: puzzle.moveright(), ""),
+#     key.UP:    (lambda: puzzle.moveup(), ""),
+#     key.DOWN:  (lambda: puzzle.movedown(), ""),
+#     key.Y:     (lambda: puzzle.twistmoves(), ""),
+#     key.P:     (lambda: puzzle.debugsolution(), "")}
 
 # Into puzzle:
 # make hint depended of solution
