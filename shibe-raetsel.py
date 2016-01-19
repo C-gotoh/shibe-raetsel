@@ -468,7 +468,7 @@ def hCostMhtn1_5x(path, dim):
 # for a given path, calc the heuristic costs
 # heuristic function: Toorac = tiles out of row and column
 def hCostToorac(path, dim):
-    state = path[1]
+    state = path[-1]
     cost = 0
     for y in range(dim[1]):
         for x in range(dim[0]):
