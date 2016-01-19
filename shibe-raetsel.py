@@ -223,8 +223,7 @@ class Puzzle(object):
     # swap the empty tile with left neighbor
     def move(self, direction):
         if direction not in [0, 1, 2, 3]:
-            print("Error wrong direction " + str(direction))
-            return None
+            raise(ValueError("move() must be called with 0, 1, 2 or 3"))
 
         new = list(getNeighborStates(self.board, self.dim))
 
@@ -242,6 +241,7 @@ class Puzzle(object):
             self.update(new, _paritycheck=False, _sol=self.solution[1:])
         else:
             self.update(new, _paritycheck=False)
+            # The user moved in other dir than hint
 
         return None
 
@@ -433,7 +433,7 @@ def hCostToorac(path, dim):
                 cost += 1
             # uses global puzzle
             # TODO dont
-            if expectedNumber not in puzzle.columnlist[x]: 
+            if expectedNumber not in puzzle.columnlist[x]:
                 cost += 1
     return cost
 
@@ -751,17 +751,17 @@ def on_key_press(symbol, modifiers):
         puzzle.reset()
 
     elif symbol == key.Q:
-        #testpuzzles
-        #len=61
-        #puzzle.update([14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3])
-        #len=53
-        #puzzle.update([7,15,10,6,4,9,0,3,11,12,1,5,2,14,13,8])
-        #len=41
-        puzzle.update([10,2,5,4,0,11,13,8,3,7,6,12,14,1,9,15])
-        #puzzle.checkparity()  # update does check parity
+        # testpuzzles
+        # len=61
+        # puzzle.update([14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3])
+        # len=53
+        # puzzle.update([7,15,10,6,4,9,0,3,11,12,1,5,2,14,13,8])
+        # len=41
+        puzzle.update([10, 2, 5, 4, 0, 11, 13, 8, 3, 7, 6, 12, 14, 1, 9, 15])
+        # puzzle.checkparity()  # update does check parity
         print(puzzle.solvable)
-        #old big
-        #puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
+        # old big
+        # puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
 
     elif symbol == key.SPACE:
         puzzle.step()
