@@ -171,7 +171,7 @@ class Puzzle(object):
         self.solve(_sol)
 
     # ...
-    def randomize(self, _heur=lambda p, d: 0, _bound=0):
+    def randomize(self, _bound=0, _heur=None):
         iter_max = 10000
         while iter_max > 0:
             board = self.boardcopy()
@@ -180,8 +180,8 @@ class Puzzle(object):
             self.update(board)
 
             if self.solvable:
-                if _bound != 0 and\
-                   _heur(self.state(), self.dim) > _bound:
+                if bound != 0 and\
+                   _heur.run(self.state(), self.dim) > _bound:
                     iter_max -= 1
                     continue
                 break
@@ -249,28 +249,8 @@ class Puzzle(object):
         start = self.boardcopy()
         goal = self.initcopy()
 
-        s_name = searchObject.name
-
-        h_name = heuristicObject.name
-        h_function = heuristicObject.function
-
-        print("Searching with " + s_name + "\n"
-              "    Heuristic function: " + h_name + "\n" +
-              "    Debug is " + str(_debug))
-
-        if _debug:
-            cProfile.run('solution, time = searchObject.run(start,' +
-                         'goal, self.dim, h_function, True)')
-        else:
-            solution, time = searchObject.run(start, goal, self.dim,
-                                              h_function, False)
-
-        print(s_name + " is complete.\n" +
-              "    It took", time, "s.\n" +
-              "    Solution has " + str(len(solution[0])) + "steps.\n" +
-              "    Heuristic: ", h_name)
-
-        return solution
+        return searchObject.run(start, goal, self.dim,
+                                heuristicObject, _debug, False)
 
     def state(self):
         return '', self.boardcopy()
@@ -282,22 +262,48 @@ class Search(object):
         self.frontier = _frontier  # ida is None,
         return None
 
-    def run(self, start, goal, dim, f_heur, _debug=False):
+    def run(self, start, goal, dim, _heur=None, _debug=False, _profile=False):
+
+        print("Searching with " + self.name + "\n"
+              "    Heuristic function: " + h_name + "\n" +
+              "    Debug is " + str(_debug))
+
+        if _profile:
+            runProfile(start, goal, dim, _heur)
+
+        else:
+            dataStruc = self.frontier
+
+            if dataStruc is None:  # this is an ID search
+                tstart = timer()
+                solution = idaSearch(start, goal, _heur, False)
+                tend = timer()
+                solution = self.pathConv(solution, dim)
+            else:                      # this is a normal search
+                tstart = timer()
+                solution = genericSearch(start, goal, _heur, dataStruc, False)
+                tend = timer()
+
+            elapsed_time = tend - tstart
+            print("\n" + s_name + " is complete.\n" +
+                  "    It took", time, "s.\n" +
+                  "    Solution has " + str(len(solution[0])) + "steps.\n" +
+                  "    Heuristic: ", h_name)
+
+        return solution
+
+    def runProfile(self, start, goal, dim, f_heur):
         dataStruc = self.frontier
 
         if dataStruc is None:  # this is an ID search
-            tstart = timer()
-            solution = idaSearch(start, goal, f_heur,
-                                 _debug=_debug)
-            tend = timer()
-            solution = self.pathConv(solution, dim)
-        else:                      # this is a normal search
-            tstart = timer()
-            solution = genericSearch(start, goal, f_heur, dataStruc,
-                                     _debug=_debug)
-            tend = timer()
+            cProfile.run('solution = idaSearch(start, goal, f_heur, True)')
+        else:                  # this is a normal search
+            cProfile.run('solution = genericSearch(start, goal, f_heur,' +
+                                                  'dataStruc, True)')
 
-        elapsed_time = tend - tstart
+        print("\n" + s_name + " is complete.\n" +
+              "    Solution has " + str(len(solution[0])) + "steps.\n" +
+              "    Heuristic: ", h_name)
 
         return solution, elapsed_time
 
@@ -515,8 +521,6 @@ def getNeighborStates(state, dim):
 # Do a search without ID
 def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
                   _dataStructure=Queue, _debug=False):
-    if isinstance(_heur, Heuristic):
-        print(_heur.name)
     heuristic = _heur
 
     visited = set()
@@ -773,10 +777,10 @@ def on_key_press(symbol, modifiers):
         puzzle.calchint()
 
     elif symbol == key.R:
-        puzzle.randomize(curHeur.function)
+        puzzle.randomize()
 
     elif symbol == key.T:
-        puzzle.randomize(curHeur.function, _bound=20)
+        puzzle.randomize(_bound=20, _heur=curHeur)
 
     elif symbol == key.E:
         new_index = (heuristics.index(curHeur)+1) % len(heuristics)
@@ -803,44 +807,6 @@ def on_key_press(symbol, modifiers):
     else:
         if debug:
             print("Unassigned Key: " + str(symbol))
-
-    # controls = ["Controls: ",
-    #             "Arrowkeys to move tiles",
-    #             "'b' - search BFS",
-    #             "'a' - search A*",
-    #             "'i' - search IDA*",
-    #             "'r' - generate random puzzle",
-    #             "'ENTER' - reset puzzle",
-    #             "'SPACE' - step through solution",
-    #             "'c' - print current heuristic cost",
-    #             "'e' - change heuristic function",
-    #             "'h' - get a hint for next move"]
-
-# keys = {
-#     key.B:     (lambda: puzzle.runBFS(heuzr=curHeur, _debug=debug), ""),
-#     key.A:     (lambda: puzzle.runAStar(heur=curHeur, _debug=debug), ""),
-#     key.X:     (lambda: print(), ""),
-#     key.ENTER: (lambda: puzzle.reset(), ""),
-#     key.Q:     (lambda: puzzle.update([6, 7, 14, 8, 5, 1, 15, 12,
-#                                        13, 0, 10, 9, 4, 2, 3, 11]), ""),
-#     key.SPACE: (lambda: puzzle.step(), ""),
-#     key.C:     (lambda: print("Absolute cost: " + str(curHeur(puzzle.state(), puzzle.dim))), ""),
-#     key.H:     (lambda: puzzle.calchint(), ""),
-#     key.R:     (lambda: puzzle.randomize(_heur=curHeur), ""),
-#     key.T:     (lambda: puzzle.randomize(_heur=curHeur, _bound=20), ""),
-#     key.E:     (lambda: print(), ""),
-#     key.I:     (lambda: puzzle.solve(puzzle.runIDA()), ""),
-#     key.LEFT:  (lambda: puzzle.moveleft(), ""),
-#     key.RIGHT: (lambda: puzzle.moveright(), ""),
-#     key.UP:    (lambda: puzzle.moveup(), ""),
-#     key.DOWN:  (lambda: puzzle.movedown(), ""),
-#     key.Y:     (lambda: puzzle.twistmoves(), ""),
-#     key.P:     (lambda: puzzle.debugsolution(), "")}
-
-# Into puzzle:
-# make hint depended of solution
-# toggle heuristics (key E)
-# toggle debug (key X)
 
 
 if __name__ == '__main__':
