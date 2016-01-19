@@ -171,7 +171,7 @@ class Puzzle(object):
         self.solve(_sol)
 
     # ...
-    def randomize(self, _bound=0, _heur=None):
+    def randomize(self, _bound=0, _heuristic=None):
         iter_max = 10000
         while iter_max > 0:
             board = self.boardcopy()
@@ -181,7 +181,7 @@ class Puzzle(object):
 
             if self.solvable:
                 if _bound != 0 and\
-                   _heur.run(self.state(), self.dim) > _bound:
+                   _heuristic.run(self.state(), self.dim) > _bound:
                     iter_max -= 1
                     continue
                 break
@@ -262,53 +262,54 @@ class Search(object):
         self.frontier = _frontier  # ida is None,
         return None
 
-    def run(self, start, goal, dim, _heur=None, _debug=False, _profile=False):
+    def run(self, start, goal, dim, _heuristic=None, _debug=False, _profile=False):
         _profile = _debug  # for later
 
-        if _heur is None:
-            _heur = Heuristic("Zero", lambda p, d: 0)
+        if _heuristic is None:
+            _heuristic = Heuristic("Zero", lambda p, d: 0)
 
         print("Searching with " + self.name + "\n"
-              "    Heuristic function: " + _heur.name + "\n" +
+              "    Heuristic function: " + _heuristic.name + "\n" +
               "    Debug is " + str(_debug))
 
         if _profile:
-            runProfile(start, goal, dim, _heur)
+            self.runProfile(start, goal, dim, _heuristic)
         else:
             dataStruc = self.frontier
-            f_heur = _heur.function
+            heurf = _heuristic.function
 
             if dataStruc is None:  # this is an ID search
                 tstart = timer()
-                solution = idaSearch(start, goal, f_heur, False)
+                solution = idaSearch(start, goal, heurf, False)
                 tend = timer()
                 solution = self.pathConv(solution, dim)
-            else:                      # this is a normal search
+            else:                  # this is a normal search
                 tstart = timer()
-                solution = genericSearch(start, goal, f_heur, dataStruc, False)
+                solution = genericSearch(start, goal, heurf, dataStruc, False)
                 tend = timer()
 
             elapsed_time = tend - tstart
-            print("\n" + s_name + " is complete.\n" +
-                  "    It took", elapsed_time, "s.\n" +
-                  "    Solution has" + str(len(solution[0])) + "steps.\n")
+            print("\n" + self.name + " is complete.\n" +
+                  "    It took " + elapsed_time + "s.\n" +
+                  "    Solution has " + str(len(solution[0])) + " steps.\n")
 
         return solution
 
     def runProfile(self, start, goal, dim, heuristic):
-        dataStruc = self.frontier
-        f_heur = heuristic.function
+        heurf = heuristic.function
+        frontier = self.frontier
+        solution = []
+        if frontier is None:      # this is an ID search
+            cProfile.runctx('solution.append(idaSearch(start, goal, heurf, True))',
+                            globals(), locals())
+            solution = self.pathConv(solution, dim)
+        else:              # this is a normal search
+            cProfile.runctx('solution = genericSearch(start, goal, heurf, frontier, True)',
+                            globals(), locals())
+        print("\n" + self.name + " is complete.\n" +
+              "    Solution has " + str(len(solution[0][0])) + "steps.\n")
 
-        if dataStruc is None:  # this is an ID search
-            cProfile.run('solution = idaSearch(start, goal, f_heur, True)')
-        else:                  # this is a normal search
-            cProfile.run('solution = genericSearch(start, goal, f_heur,' +
-                                                  'dataStruc, True)')
-
-        print("\n" + s_name + " is complete.\n" +
-              "    Solution has " + str(len(solution[0])) + "steps.\n")
-
-        return solution, elapsed_time
+        return solution
 
     # converts a given path in ida format
     # to a string of moves plus start
@@ -522,9 +523,8 @@ def getNeighborStates(state, dim):
 
 
 # Do a search without ID
-def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
+def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
                   _dataStructure=Queue, _debug=False):
-    heuristic = _heur
 
     visited = set()
     frontier = _dataStructure()
@@ -537,7 +537,6 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
 
     item = (heuristic(('', start_pos), puzzle.dim), 1, ('', start_pos))
 
-    # heappush(heap, item)
     frontier.put(item)
 
     # while True:
@@ -571,25 +570,25 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
 
             if left is not None and str(left) not in visited:
                 new_path = (path[0] + "0", left)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if up is not None and str(up) not in visited:
                 new_path = (path[0] + "1", up)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if down is not None and str(down) not in visited:
                 new_path = (path[0] + "2", down)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if right is not None and str(right) not in visited:
                 new_path = (path[0] + "3", right)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
@@ -599,28 +598,27 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
 
 
 # Do a search with IDA
-def idaSearch(startPos, endPos, _heur=lambda p, d: 0,
+def idaSearch(startPos, endPos, heurf,
               _dataStructure=Queue, _debug=False):
-    heuristic = _heur
+    bound = heurf([startPos], puzzle.dim)
 
-    bound = heuristic([startPos], puzzle.dim)
-
-    tstart = timer()
-
-    prev_elapsed = 0
+    if _debug:
+        tstart = timer()
+        prev_elapsed = 0
 
     while True:
-        path = idaIteration([startPos], 1, bound, endPos, _heur)
+        path = idaIteration([startPos], 1, bound, endPos, heurf)
 
         if path is not None:
             return path
 
-        tnow = timer()
-        elapsed_time = tnow - tstart
-        diff = elapsed_time - prev_elapsed
-        prev_elapsed = elapsed_time
-        print("Iteration " + str(bound) + " done in " + str(elapsed_time) +
-              " (cumulated)" + " add.: " + str(diff))
+        if _debug:
+            tnow = timer()
+            elapsed_time = tnow - tstart
+            diff = elapsed_time - prev_elapsed
+            prev_elapsed = elapsed_time
+            print("Iteration " + str(bound) + " done in " + str(elapsed_time) +
+                  " (cumulated)" + " add.: " + str(diff))
         bound += 1
 
 
@@ -783,7 +781,7 @@ def on_key_press(symbol, modifiers):
         puzzle.randomize()
 
     elif symbol == key.T:
-        puzzle.randomize(_bound=20, _heur=curHeur)
+        puzzle.randomize(_bound=20, _heuristic=curHeur)
 
     elif symbol == key.E:
         new_index = (heuristics.index(curHeur)+1) % len(heuristics)
