@@ -272,42 +272,48 @@ class Search(object):
               "    Heuristic function: " + _heuristic.name + "\n" +
               "    Debug is " + str(_debug))
 
-        if _profile:
-            self.runProfile(start, goal, dim, _heuristic)
-        else:
-            dataStruc = self.frontier
-            heurf = _heuristic.function
+        solution = ('', [])
 
-            if dataStruc is None:  # this is an ID search
-                tstart = timer()
+        if _profile:
+            solution = self.runProfile(start, goal, dim, _heuristic)
+        else:
+            heurf = _heuristic.function
+            frontier = self.frontier
+
+            tstart = timer()
+
+            if frontier is None:  # this is an ID search
                 solution = idaSearch(start, goal, heurf, False)
-                tend = timer()
                 solution = self.pathConv(solution, dim)
             else:                  # this is a normal search
-                tstart = timer()
-                solution = genericSearch(start, goal, heurf, dataStruc, False)
-                tend = timer()
+                solution = genericSearch(start, goal, heurf, frontier, False)
 
+            tend = timer()
             elapsed_time = tend - tstart
-            print("\n" + self.name + " is complete.\n" +
-                  "    It took " + elapsed_time + "s.\n" +
-                  "    Solution has " + str(len(solution[0])) + " steps.\n")
+
+            print("\n" + self.name + " is complete." +
+                  "\n    It took " + str(elapsed_time) + "s." +
+                  "\n    Solution has " + str(len(solution[0])) + " steps.")
 
         return solution
 
     def runProfile(self, start, goal, dim, heuristic):
         heurf = heuristic.function
         frontier = self.frontier
-        solution = []
+        solution = ('', [])
+
+        ref = [None] # cProfile: need to pass a mutable object
         if frontier is None:      # this is an ID search
-            cProfile.runctx('solution.append(idaSearch(start, goal, heurf, True))',
+            cProfile.runctx('ref[0] = idaSearch(start, goal, heurf, True)',
                             globals(), locals())
-            solution = self.pathConv(solution, dim)
+            solution = self.pathConv(ref[0], dim)
         else:              # this is a normal search
-            cProfile.runctx('solution = genericSearch(start, goal, heurf, frontier, True)',
+            cProfile.runctx('ref[0] = genericSearch(start, goal, heurf, frontier, True)',
                             globals(), locals())
-        print("\n" + self.name + " is complete.\n" +
-              "    Solution has " + str(len(solution[0][0])) + "steps.\n")
+            solution = ref[0]
+
+        print("\n" + self.name + " is complete." +
+              "\n    Solution has " + str(len(solution[0])) + " steps.")
 
         return solution
 
@@ -535,7 +541,7 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
     global heuristic_calls
     heuristic_calls = 0
 
-    item = (heuristic(('', start_pos), puzzle.dim), 1, ('', start_pos))
+    item = (_heurf(('', start_pos), puzzle.dim), 1, ('', start_pos))
 
     frontier.put(item)
 
