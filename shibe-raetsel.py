@@ -74,7 +74,7 @@ class Puzzle(object):
     def twistmoves(self):
         self.twisted = not self.twisted
 
-    def debugsolution():
+    def debugsolution(self):
         for element in puzzle.solution:
             print(element)
 
@@ -315,8 +315,8 @@ class Puzzle(object):
 
         tend = timer()
         elapsed_time = tend - tstart
-
-        print("IDA is complete. It took", elapsed_time, "s. Solution has ", len(solution),
+        #ida solution: [start-end] -> steps=len(solution)-1
+        print("IDA is complete. It took", elapsed_time, "s. Solution has ", len(solution)-1,
               " steps. Heuristic: ", str(curHeur).split()[1])
 
         return solution #, elapsed_time
@@ -599,6 +599,7 @@ def idaSearch(startPos, endPos, _heur=lambda p, d: 0,
     visited = set()
     bound = _heur([startPos], puzzle.dim)
     tstart = timer()
+    prev_elapsed = 0
     
     while True:
         path = idaIteration([startPos], 1, bound, endPos, _heur)
@@ -606,7 +607,9 @@ def idaSearch(startPos, endPos, _heur=lambda p, d: 0,
             return path
         tnow = timer()
         elapsed_time = tnow - tstart
-        print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)")
+        diff = elapsed_time - prev_elapsed
+        prev_elapsed = elapsed_time
+        print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)" + " add.: " + str(diff))
         bound += 1
 
 
@@ -618,16 +621,16 @@ def idaIteration(path, lenpath, bound, endPos, heur):
     while frontier:
         path = frontier.pop()
         node = path[-1]
-        estlen = len(path) + heur([node], puzzle.dim)
         if str(node) not in visited:
             visited.add(str(node))
-            if estlen > bound:
-                continue
             if node == endPos:
                 print("Visited: " + str(len(visited)))
                 return path
             for neighbor in getNeighborStates(node, puzzle.dim):
-                if neighbor is None:
+                if neighbor is None or str(neighbor) in visited:
+                    continue
+                estlen = len(path) + heur([neighbor], puzzle.dim)
+                if estlen > bound:
                     continue
                 new_path = path[:]
                 new_path.append(neighbor)
@@ -635,7 +638,6 @@ def idaIteration(path, lenpath, bound, endPos, heur):
 
     print("Visited: " + str(len(visited)))
     return None
-
 
 @window.event
 def on_resize(width, height):
@@ -774,7 +776,17 @@ def on_key_press(symbol, modifiers):
         puzzle.reset()
 
     elif symbol == key.Q:
-        puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
+        #testpuzzles
+        #len=61
+        puzzle.update([14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3])
+        #len=53
+        #puzzle.update([7,15,10,6,4,9,0,3,11,12,1,5,2,14,13,8])
+        #len=?
+        #puzzle.update([10,2,5,4,0,11,13,8,3,7,6,12,14,1,9,15])
+        puzzle.checkparity()
+        print(puzzle.solvable)
+        #old big
+        #puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
 
     elif symbol == key.SPACE:
         puzzle.step()
