@@ -180,7 +180,7 @@ class Puzzle(object):
             self.update(board)
 
             if self.solvable:
-                if bound != 0 and\
+                if _bound != 0 and\
                    _heur.run(self.state(), self.dim) > _bound:
                     iter_max -= 1
                     continue
