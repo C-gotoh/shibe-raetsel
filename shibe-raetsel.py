@@ -105,13 +105,13 @@ class Puzzle(object):
     def solve(self, solution):
         if isinstance(solution, tuple):
             # convert to String
-
             self.update(solution[1], _sol=solution[0])
             # we are done
         elif isinstance(solution, str):
             self.solution = solution
         else:
-            self.solution = pathConv(solution, self.dim)[0]
+            raise(ValueError("The solution in solve() must be str or tuple"))
+            # self.solution = pathConv(solution, self.dim)[0]
 
         self.calchint()
 
@@ -233,18 +233,15 @@ class Puzzle(object):
 
         new = new[direction]
 
-        if new is not None:
-            self.update(new, _paritycheck = False)
-        else:
+        if new is None:
             if debug:
                 print("This move is not possible (" + str(direction) + ")")
             return None
 
         if self.solution != '' and str(direction) == self.solution[0]:
-            sol = self.solution[1:]
+            self.update(new, _paritycheck=False, _sol=self.solution[1:])
         else:
-            sol = ''
-        self.update(new, _paritycheck=False, _sol=sol)
+            self.update(new, _paritycheck=False)
 
         return None
 
@@ -263,9 +260,10 @@ class Puzzle(object):
 
         if _debug:
             cProfile.run('solution, time = searchObject.run(start,' +
-                         'goal, h_function, True)')
+                         'goal, self.dim, h_function, True)')
         else:
-            solution, time = searchObject.run(start, goal, h_function, False)
+            solution, time = searchObject.run(start, goal, self.dim,
+                                              h_function, False)
 
         print(s_name + " is complete.\n" +
               "    It took", time, "s.\n" +
@@ -275,7 +273,7 @@ class Puzzle(object):
         return solution
 
     def state(self):
-        return self.state()
+        return '', self.boardcopy()
 
 
 class Search(object):
@@ -284,16 +282,15 @@ class Search(object):
         self.frontier = _frontier  # ida is None,
         return None
 
-    def run(self, start, goal, f_heur, _debug=False):
+    def run(self, start, goal, dim, f_heur, _debug=False):
         dataStruc = self.frontier
 
-        if self.frontier is None:  # this is an ID search
+        if dataStruc is None:  # this is an ID search
             tstart = timer()
             solution = idaSearch(start, goal, f_heur,
                                  _debug=_debug)
-            #fix for unified behavior
-            solution = [solution]
             tend = timer()
+            solution = self.pathConv(solution, dim)
         else:                      # this is a normal search
             tstart = timer()
             solution = genericSearch(start, goal, f_heur, dataStruc,
@@ -301,10 +298,24 @@ class Search(object):
             tend = timer()
 
         elapsed_time = tend - tstart
-        #ida solution: [start-end] -> steps=len(solution)-1
-        #print("IDA is complete. It took", elapsed_time, "s. Solution has ", len(solution)-1,
-        #      " steps. Heuristic: ", str(curHeur).split()[1]
+
         return solution, elapsed_time
+
+    # converts a given path in ida format
+    # to a string of moves plus start
+    def pathConv(self, path, dim):
+        genpath = ""
+        idapath = path[:]
+        start = idapath[0]
+
+        while len(idapath) > 1:
+            possible = getNeighborStates(idapath.pop(0), dim)
+            current = idapath[0]
+            for i in range(4):
+                if current == possible[i]:
+                    genpath = genpath + str(i)
+
+        return genpath, start
 
 
 class Heuristic(object):
@@ -316,22 +327,6 @@ class Heuristic(object):
     def run(self, state, dim):
         return self.function(state, dim)
 
-# converts a given path in ida format
-# to a string of moves plus start
-def pathConv(path, dim):
-    genpath = ""
-    idapath = path[:]
-    start = idapath[0]
-    print(idapath)
-
-    while len(idapath) > 1:
-        possible = getNeighborStates(idapath.pop(0), dim)
-        current = idapath[0]
-        for i in range(4):
-            if current == possible[i]:
-                genpath = genpath + str(i)
-
-    return genpath, start
 
 # ######################## heuristic functions
 
@@ -429,18 +424,18 @@ def hCostToorac(path, dim):
     state = path[-1]
     cost = 0
     for y in range(dim[1]):
+        row_start = y*dim[0]
         for x in range(dim[0]):
-            expectedNumber = x + y * dim[0] + 1
+            expectedNumber = x + row_start + 1
             if expectedNumber == dim[0]*dim[1]:
                 continue
-            if expectedNumber not in state[y*dim[0]:y*dim[0]+dim[1]]:
+            if expectedNumber not in state[row_start:row_start+dim[1]]:
                 cost += 1
-                # print("wrong row: " + str(expectedNumber))
-                # print(state[y])
-            if expectedNumber not in puzzle.columnlist[x]:
+            # uses global puzzle
+            # TODO dont
+            if expectedNumber not in puzzle.columnlist[x]: 
                 cost += 1
-                # print("wrong col: " + str(expectedNumber))
-    return cost  # + len(path)
+    return cost
 
 
 # highly used function!
@@ -567,31 +562,27 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
 
             left, up, down, right = getNeighborStates(head, puzzle.dim)
 
-            if left is not None:
-                if str(left) not in visited:
-                    new_path = (path[0] + "0", left)
-                    frontier.put((_heur(new_path, puzzle.dim) + plength,
+            if left is not None and str(left) not in visited:
+                new_path = (path[0] + "0", left)
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if up is not None:
-                if str(up) not in visited:
-                    new_path = (path[0] + "1", up)
-                    frontier.put((_heur(new_path, puzzle.dim) + plength,
+            if up is not None and str(up) not in visited:
+                new_path = (path[0] + "1", up)
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if down is not None:
-                if str(down) not in visited:
-                    new_path = (path[0] + "2", down)
-                    frontier.put((_heur(new_path, puzzle.dim) + plength,
+            if down is not None and str(down) not in visited:
+                new_path = (path[0] + "2", down)
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if right is not None:
-                if str(right) not in visited:
-                    new_path = (path[0] + "3", right)
-                    frontier.put((_heur(new_path, puzzle.dim) + plength,
+            if right is not None and str(right) not in visited:
+                new_path = (path[0] + "3", right)
+                frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
@@ -621,8 +612,8 @@ def idaSearch(startPos, endPos, _heur=lambda p, d: 0,
         elapsed_time = tnow - tstart
         diff = elapsed_time - prev_elapsed
         prev_elapsed = elapsed_time
-        print("Iteration " + str(bound) + " done in " + str(elapsed_time) + 
-                " (cumulated)" + " add.: " + str(diff))
+        print("Iteration " + str(bound) + " done in " + str(elapsed_time) +
+              " (cumulated)" + " add.: " + str(diff))
         bound += 1
 
 
@@ -650,6 +641,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
 
     print("Visited: " + str(len(visited)))
     return None
+
 
 @window.event
 def on_resize(width, height):
@@ -766,7 +758,7 @@ def on_key_press(symbol, modifiers):
         #puzzle.update([7,15,10,6,4,9,0,3,11,12,1,5,2,14,13,8])
         #len=41
         puzzle.update([10,2,5,4,0,11,13,8,3,7,6,12,14,1,9,15])
-        puzzle.checkparity()
+        #puzzle.checkparity()  # update does check parity
         print(puzzle.solvable)
         #old big
         #puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
