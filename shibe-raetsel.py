@@ -35,7 +35,7 @@ heuristic_calls = 0
 
 # ui
 font_large = 32
-font_small = 14
+font_small = 13
 font_number = 20
 
 
@@ -111,9 +111,7 @@ class Puzzle(object):
         elif isinstance(solution, str):
             self.solution = solution
         else:
-            # TODO reformat ida solutions
             self.solution = solution
-            return None
 
         self.calchint()
 
@@ -121,6 +119,7 @@ class Puzzle(object):
 
     # If there is a solution,
     # go one strep throu it
+    # doesnt work with ida solutions yet
     def step(self):
         if isinstance(self.solution, tuple):
             self.solution = self.solution[0]
@@ -236,10 +235,15 @@ class Puzzle(object):
 
         new = new[direction]
 
-        if new is not None:
-            self.update(new, _paritycheck = False)
-        else:
+        if new is None:
             print("This move is not possible (" + str(direction) + ")")
+            return None
+
+        if self.solution != '' and str(direction) == self.solution[0]:
+            sol = self.solution[1:]
+        else:
+            sol = ''
+        self.update(new, _paritycheck=False, _sol=sol)
 
         return None
 
@@ -263,76 +267,13 @@ class Puzzle(object):
 
         print(s_name + " is complete.\n" +
               "    It took", time, "s.\n" +
-              "    Solution has " + str(len(solution[0])), " steps.\n" +
+              "    Solution has " + str(len(solution[0])) + "steps.\n" +
               "    Heuristic: ", h_name)
 
         return solution
 
     def state(self):
         return ('', self.boardcopy()), self.dim
-
-
-
-    # # start a BFS on the current state of game
-    # def runBFS(self, _debug=False):
-    #     start = self.boardcopy()
-    #     goal = self.initcopy()
-
-    #     print("searching (BFS)")
-
-    #     tstart = timer()
-
-    #     solution, a, b = genericSearch(start, goal, None,
-    #                                    _dataStructure=Queue,
-    #                                    _debug=_debug)
-
-    #     tend = timer()
-    #     elapsed_time = tend - tstart
-
-    #     print("BFS is complete. It took", elapsed_time, "s. Solution has ",
-    #           len(solution[0]), " steps. Heuristic: ", str(curHeur).split()[1])
-
-    #     return solution
-
-    # # start a A* on the current state of game
-    # def runAStar(self, heur, _debug=False):
-    #     start = self.boardcopy()
-    #     goal = self.initcopy()
-
-    #     print("searching (A* | )")
-
-    #     tstart = timer()
-
-    #     solution, a, b = genericSearch(start, goal, heur,
-    #                                    _dataStructure=PriorityQueue,
-    #                                    _debug=_debug)
-
-    #     tend = timer()
-    #     elapsed_time = tend - tstart
-
-    #     print("A* is complete. It took", elapsed_time, "s. Solution has ",
-    #           len(solution[0]), " steps. Heuristic: ", str(curHeur).split()[1])
-
-    #     return solution
-
-    # # start a IDA on the current state of game
-    # def runIDA(self, heur, _debug=False):
-    #     start = self.boardcopy()
-    #     goal = self.initcopy()
-
-    #     print("searching (IDA*)")
-
-    #     tstart = timer()
-
-    #     solution = idaSearch(start, goal, heur, _debug=_debug)
-
-    #     tend = timer()
-    #     elapsed_time = tend - tstart
-
-    #     print("IDA is complete. It took", elapsed_time, "s. Solution has ", len(solution),
-    #           " steps. Heuristic: ", str(curHeur).split()[1])
-
-    #     return solution
 
 
 class Search(object):
@@ -413,9 +354,8 @@ def hCostLinearConflict(path, dim):
                 if value >= maxValue:
                     maxValue = value
                 else:
-                    #print("conflict cols")
                     cost += 2
-    return cost  # + len(path)    
+    return cost
 
 
 # highly used function!
@@ -436,7 +376,7 @@ def hCostManhattan(path, dim):
             manhattanDist = abs(x - actualposition[0])\
                 + abs(y - actualposition[1])
             cost += manhattanDist
-    return cost  # + len(path)
+    return cost
 
 
 # highly used function!
@@ -460,7 +400,7 @@ def hCostMhtn2x(path, dim):
 # for a given path, calc the heuristic costs
 # Just for fun, calc manhattan times 3
 def hCostMhtn1_5x(path, dim):
-    return hCostManhattan(path, dim) * 1.5
+    return int(hCostManhattan(path, dim) * 1.5)
 
 
 # highly used function!
@@ -656,7 +596,8 @@ def idaSearch(startPos, endPos, _heur=lambda p, d: 0,
         tnow = timer()
         elapsed_time = tnow - tstart
 
-        print("Iteration " + str(bound) + " done in " + str(elapsed_time) + " (cumulated)")
+        print("Iteration " + str(bound) + " done in " +
+              str(elapsed_time) + " (cumulated)")
 
         bound += 1
 
@@ -691,7 +632,6 @@ def idaIteration(path, lenpath, bound, endPos, heur):
 def on_resize(width, height):
     global maxdimension
     maxdimension = min(width, height)
-    # print('The window was resized to %dx%d' % (width, height))
     if bgimg is not None:
         bgimg.width = maxdimension
         bgimg.height = maxdimension
@@ -733,42 +673,44 @@ def on_draw():
                 anchor_x='center',
                 anchor_y='center')
             number.draw()
- 
+
+    # ---- Construct labels
     top = window.height - font_large
     labels = [("Current heuristic function: ", 16, top)]
     for h in heuristics:
-        prefix = "  "
+        prefix = " "
         if curHeur is h:
-            prefix = "* "
+            prefix = "*"
 
-        # (len(heuristics) - len(labels))
         y = top - len(labels) * round(1.5 * font_small)
-        text = prefix + h.name + ": " + str(puzzle.heuristic(h))
+        text = prefix + " " + str(puzzle.heuristic(h)) + ' ' + h.name
 
         labels.append((text, 16, y))
 
-    right = window.width - 110
+    right = window.width - 130
     labels.append(("Hint: " + str(puzzle.hint), right, top))
     labels.append(("Debug: " + str(debug), right, top - font_large))
 
     # ---- Draw controls
-    controls = ["Controls: ",
-                "Arrowkeys to move tiles",
-                "'b' - search BFS",
-                "'a' - search A*",
-                "'i' - search IDA*",
-                "'r' - generate random puzzle",
-                "'ENTER' - reset puzzle",
-                "'SPACE' - step through solution",
-                "'c' - print current heuristic cost",
-                "'e' - change heuristic function",
-                "'h' - get a hint for next move"]
+    controls = "Controls:\n" +\
+        "  ←↑↓→ - move tiles\n" +\
+        "  'b'  - search BFS\n" +\
+        "  'a'  - search A*\n" +\
+        "  'i'  - search IDA*\n" +\
+        "  'r'  - generate random puzzle\n" +\
+        "   ↲   - reset puzzle\n" +\
+        "   ␣   - step through solution\n" +\
+        "  'c'  - print current heuristic cost\n" +\
+        "  'e'  - change heuristic function\n" +\
+        "  'h'  - get a hint for next move"
 
-    for i in range(len(controls)):
-        labels.append((controls[i], 16,
-                       (len(controls)+1-i)*round(1.5*font_small)))
-    
-    font = 'Times New Roman'
+    clines = controls.split("\n")
+
+    for i in range(len(clines)):
+        labels.append((clines[i], 16,
+                       (len(clines)+1-i)*round(1.5*font_small)))
+
+    font = 'Monospace'
     for text, posx, posy in labels:
         pyglet.text.Label(text, font_name=font, font_size=font_small, x=posx,
                           y=posy, anchor_x='left', anchor_y='center').draw()
@@ -776,16 +718,16 @@ def on_draw():
 
 @window.event
 def on_key_press(symbol, modifiers):
-    global puzzle, curHeur, heuristics, debug
+    global puzzle, curHeur, searches, heuristics, debug
 
     if symbol == key.B:
-        puzzle.solve(puzzle.search(searches[0], heuristics[0], _debug=debug))
+        puzzle.solve(puzzle.search(searches[0], curHeur, _debug=debug))
 
     elif symbol == key.A:
-        puzzle.solve(puzzle.search(searches[1], heuristics[0], _debug=debug))
+        puzzle.solve(puzzle.search(searches[1], curHeur, _debug=debug))
 
     elif symbol == key.I:
-        puzzle.solve(puzzle.search(searches[2], heuristics[0], _debug=debug))
+        puzzle.solve(puzzle.search(searches[2], curHeur, _debug=debug))
 
     elif symbol == key.X:
         debug = not debug
@@ -878,10 +820,10 @@ if __name__ == '__main__':
 
     puzzle = Puzzle(4, 4)
 
-    heuristics = [Heuristic("Manhattan Distance", hCostManhattan),
-                  Heuristic("Misplaced Tiles", hCostMpt),
-                  Heuristic("Tiles out of row and column", hCostToorac),
-                  Heuristic("Lineo Conflict", hCostLinearConflict),
+    heuristics = [Heuristic("Manhattan distance", hCostManhattan),
+                  Heuristic("Misplaced tiles", hCostMpt),
+                  Heuristic("Tiles out of row & column", hCostToorac),
+                  Heuristic("Linear conflicts", hCostLinearConflict),
                   Heuristic("Manhattan * 3", hCostMhtn3x),
                   Heuristic("Manhattan * 2", hCostMhtn2x),
                   Heuristic("Manhattan * 1.5", hCostMhtn1_5x)]
@@ -891,7 +833,6 @@ if __name__ == '__main__':
                 Search("IDA*", None)]
 
     curHeur = heuristics[0]
-
     curSearch = searches[0]
 
     pyglet.app.run()
