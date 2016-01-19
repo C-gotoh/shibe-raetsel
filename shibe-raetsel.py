@@ -274,18 +274,18 @@ class Search(object):
 
         if _profile:
             runProfile(start, goal, dim, _heur)
-
         else:
             dataStruc = self.frontier
+            f_heur = _heur.function
 
             if dataStruc is None:  # this is an ID search
                 tstart = timer()
-                solution = idaSearch(start, goal, _heur, False)
+                solution = idaSearch(start, goal, f_heur, False)
                 tend = timer()
                 solution = self.pathConv(solution, dim)
             else:                      # this is a normal search
                 tstart = timer()
-                solution = genericSearch(start, goal, _heur, dataStruc, False)
+                solution = genericSearch(start, goal, f_heur, dataStruc, False)
                 tend = timer()
 
             elapsed_time = tend - tstart
