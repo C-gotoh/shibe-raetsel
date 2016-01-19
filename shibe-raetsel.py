@@ -263,9 +263,13 @@ class Search(object):
         return None
 
     def run(self, start, goal, dim, _heur=None, _debug=False, _profile=False):
+        _profile = _debug  # for later
+
+        if _heur is None:
+            _heur = Heuristic("Zero", lambda p, d: 0)
 
         print("Searching with " + self.name + "\n"
-              "    Heuristic function: " + h_name + "\n" +
+              "    Heuristic function: " + _heur.name + "\n" +
               "    Debug is " + str(_debug))
 
         if _profile:
@@ -286,14 +290,14 @@ class Search(object):
 
             elapsed_time = tend - tstart
             print("\n" + s_name + " is complete.\n" +
-                  "    It took", time, "s.\n" +
-                  "    Solution has " + str(len(solution[0])) + "steps.\n" +
-                  "    Heuristic: ", h_name)
+                  "    It took", elapsed_time, "s.\n" +
+                  "    Solution has" + str(len(solution[0])) + "steps.\n")
 
         return solution
 
-    def runProfile(self, start, goal, dim, f_heur):
+    def runProfile(self, start, goal, dim, heuristic):
         dataStruc = self.frontier
+        f_heur = heuristic.function
 
         if dataStruc is None:  # this is an ID search
             cProfile.run('solution = idaSearch(start, goal, f_heur, True)')
@@ -302,8 +306,7 @@ class Search(object):
                                                   'dataStruc, True)')
 
         print("\n" + s_name + " is complete.\n" +
-              "    Solution has " + str(len(solution[0])) + "steps.\n" +
-              "    Heuristic: ", h_name)
+              "    Solution has " + str(len(solution[0])) + "steps.\n")
 
         return solution, elapsed_time
 
