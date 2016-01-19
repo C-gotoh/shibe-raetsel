@@ -565,26 +565,30 @@ def genericSearch(start_pos, end_state, _heur=lambda p, d: 0,
             left, up, down, right = getNeighborStates(head, puzzle.dim)
 
             if left is not None:
-                new_path = (path[0] + "0", left)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                if str(left) not in visited:
+                    new_path = (path[0] + "0", left)
+                    frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if up is not None:
-                new_path = (path[0] + "1", up)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                if str(up) not in visited:
+                    new_path = (path[0] + "1", up)
+                    frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if down is not None:
-                new_path = (path[0] + "2", down)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                if str(down) not in visited:
+                    new_path = (path[0] + "2", down)
+                    frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
             if right is not None:
-                new_path = (path[0] + "3", right)
-                frontier.put((_heur(new_path, puzzle.dim) + plength,
+                if str(right) not in visited:
+                    new_path = (path[0] + "3", right)
+                    frontier.put((_heur(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
@@ -778,11 +782,11 @@ def on_key_press(symbol, modifiers):
     elif symbol == key.Q:
         #testpuzzles
         #len=61
-        puzzle.update([14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3])
+        #puzzle.update([14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3])
         #len=53
         #puzzle.update([7,15,10,6,4,9,0,3,11,12,1,5,2,14,13,8])
-        #len=?
-        #puzzle.update([10,2,5,4,0,11,13,8,3,7,6,12,14,1,9,15])
+        #len=41
+        puzzle.update([10,2,5,4,0,11,13,8,3,7,6,12,14,1,9,15])
         puzzle.checkparity()
         print(puzzle.solvable)
         #old big
