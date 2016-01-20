@@ -167,9 +167,8 @@ class Puzzle(object):
     def update(self, newfield, _paritycheck=True, _sol=''):
         self.board = newfield[:]
         if _paritycheck:
-            self.checkboard()
-        else:
-            self.checksolved()
+            self.checkparity()
+        self.checksolved()
 
         self.solve(_sol)
 
@@ -190,10 +189,6 @@ class Puzzle(object):
                 break
 
         self.update(board)
-
-    def checkboard(self):
-        self.checksolved()
-        self.checkparity()
 
     def checksolved(self):
         self.solved = self.board == self.initcopy()
