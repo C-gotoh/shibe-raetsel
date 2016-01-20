@@ -167,9 +167,8 @@ class Puzzle(object):
     def update(self, newfield, _paritycheck=True, _sol=''):
         self.board = newfield[:]
         if _paritycheck:
-            self.checkboard()
-        else:
-            self.checksolved()
+            self.checkparity()
+        self.checksolved()
 
         self.solve(_sol)
 
@@ -190,10 +189,6 @@ class Puzzle(object):
                 break
 
         self.update(board)
-
-    def checkboard(self):
-        self.checksolved()
-        self.checkparity()
 
     def checksolved(self):
         self.solved = self.board == self.initcopy()
@@ -489,7 +484,7 @@ def getNeighborStates(state, dim):
     # precalc
     izero = state.index(0)
     izero_fdiv = izero // dim[0]
-    izero_mod = izero % dim[1]
+    izero_mod = izero % dim[0]
 
     # left:
     iswap = izero - 1
@@ -502,7 +497,7 @@ def getNeighborStates(state, dim):
 
     # up:
     iswap = izero + dim[0]
-    if izero_mod == iswap % dim[1] and iswap < len(state):
+    if izero_mod == iswap % dim[0] and iswap < len(state):
         up = state[:]
         up[izero] = up[iswap]
         up[iswap] = 0
@@ -511,7 +506,7 @@ def getNeighborStates(state, dim):
 
     # down:
     iswap = izero - dim[0]
-    if izero_mod == iswap % dim[1] and iswap >= 0:
+    if izero_mod == iswap % dim[0] and iswap >= 0:
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
