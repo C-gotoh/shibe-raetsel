@@ -227,15 +227,12 @@ class Puzzle(object):
 
     # swap the empty tile with left neighbor
     def move(self, direction):
-        if direction not in [0, 1, 2, 3]:
-            raise(ValueError("move() must be called with 0, 1, 2 or 3"))
-
-        new = list(getNeighborStates(self.board, self.dim))
+        neighbors = list(getNeighborStates(self.board, self.dim))
 
         if self.twisted:
-            new.reverse()
+            direction = [0, 1, 2, 3][::-1][direction]
 
-        new = new[direction]
+        new = neighbors[direction]
 
         if new is None:
             if debug:
