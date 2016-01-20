@@ -644,7 +644,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
             if node == endPos:
                 return path
             for neighbor in getNeighborStates(node, puzzle.dim):
-                if neighbor is None or str(neighbor) in visited:
+                if neighbor is None or neighbor == path[-2] or str(neighbor) in visited:
                     continue
                 estlen = len(path) + heur([neighbor], puzzle.dim)
                 if estlen > bound:
