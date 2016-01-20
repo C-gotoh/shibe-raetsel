@@ -547,10 +547,8 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
     heuristic_calls = 0
 
     item = (_heurf(('', start_pos), puzzle.dim), 1, ('', start_pos))
-
     frontier.put(item)
 
-    # while True:
     while not frontier.empty():
         max_frontier = max(frontier.qsize(), max_frontier)
 
@@ -579,26 +577,26 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 
             left, up, down, right = getNeighborStates(head, puzzle.dim)
 
-            if left is not None and str(left) not in visited:
-                new_path = (path[0] + "0", left)
+            if left is not None and path[0][-1] != '3' and str(left) not in visited:
+                new_path = (path[0] + '0', left)
                 frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if up is not None and str(up) not in visited:
-                new_path = (path[0] + "1", up)
+            if up is not None and path[0][-1] != '2' and str(up) not in visited:
+                new_path = (path[0] + '1', up)
                 frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if down is not None and str(down) not in visited:
-                new_path = (path[0] + "2", down)
+            if down is not None and path[0][-1] != '1' and str(down) not in visited:
+                new_path = (path[0] + '2', down)
                 frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
 
-            if right is not None and str(right) not in visited:
-                new_path = (path[0] + "3", right)
+            if right is not None and path[0][-1] != '0' and str(right) not in visited:
+                new_path = (path[0] + '3', right)
                 frontier.put((_heurf(new_path, puzzle.dim) + plength,
                              plength,
                              new_path))
