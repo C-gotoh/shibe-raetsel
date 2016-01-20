@@ -10,22 +10,18 @@ from timeit import default_timer as timer
 
 import cProfile
 
+
+# ---- globals
+
 # will be initialized elsewhere
+searches = []
+curSearch = None
 heuristics = []
 curHeur = None
+keys = {}
 
 # be a little bit verbose
 debug = False
-
-# pyglet init
-window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
-
-maxdimension = min(window.width, window.height)
-
-bgimg = None
-# bgimg = pyglet.resource.image('data/img/img.png')
-
-pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
 
 # Performance Data
 added_nodes = 0
@@ -37,6 +33,14 @@ heuristic_calls = 0
 font_large = 32
 font_small = 13
 font_number = 20
+
+window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
+maxdimension = min(window.width, window.height)
+
+bgimg = None
+# bgimg = pyglet.resource.image('data/img/img.png')
+
+pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
 
 
 # Objects of class Puzzle represent a singe game
@@ -262,7 +266,8 @@ class Search(object):
         self.frontier = _frontier  # ida is None,
         return None
 
-    def run(self, start, goal, dim, _heuristic=None, _debug=False, _profile=False):
+    def run(self, start, goal, dim, _heuristic=None, _debug=False,
+            _profile=False):
         _profile = _debug  # for later
 
         if _heuristic is None:
@@ -302,14 +307,14 @@ class Search(object):
         frontier = self.frontier
         solution = ('', [])
 
-        ref = [None] # cProfile: need to pass a mutable object
+        ref = [None]  # cProfile: need to pass a mutable object
         if frontier is None:      # this is an ID search
             cProfile.runctx('ref[0] = idaSearch(start, goal, heurf, True)',
                             globals(), locals())
             solution = self.pathConv(ref[0], dim)
         else:              # this is a normal search
-            cProfile.runctx('ref[0] = genericSearch(start, goal, heurf, frontier, True)',
-                            globals(), locals())
+            cProfile.runctx('ref[0] = genericSearch(start, goal, heurf,' +
+                            'frontier, True)', globals(), locals())
             solution = ref[0]
 
         print("\n" + self.name + " is complete." +
@@ -827,7 +832,7 @@ def toggleDebug():
 
 
 def main():
-    global puzzle, heuristics, searches, curHeur, curSearch
+    global puzzle, searches, curSearch, heuristics, curHeur, keys
 
     puzzle = Puzzle(4, 4)
 
@@ -838,13 +843,39 @@ def main():
                   Heuristic("Manhattan * 3", hCostMhtn3x),
                   Heuristic("Manhattan * 2", hCostMhtn2x),
                   Heuristic("Manhattan * 1.5", hCostMhtn1_5x)]
+    curHeur = heuristics[0]
 
     searches = [Search("BFS", Queue),
                 Search("A*", PriorityQueue),
                 Search("IDA*", None)]
-
-    curHeur = heuristics[0]
     curSearch = searches[0]
+
+    keys = {
+        key.B:     ('b',  "search BFS",
+                    lambda: puzzle.solve(puzzle.search(searches[0], curHeur, debug))),
+        key.A:     ('a',  "search A*",
+                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, debug))),
+        key.I:     ('i',  "search IDA*",
+                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, debug))),
+        key.SPACE: ('␣',  "step through solution", lambda: puzzle.step()),
+        key.ENTER: ('↲',  "reset puzzle", lambda: puzzle.reset()),
+        key.R:     ('r',  "random puzzle", lambda: puzzle.randomize()),
+        key.E:     ('e',  "change heuristic", lambda: toggleHeuristic()),
+        key.T:     (None, "(random) puzzle", lambda: puzzle.randomize(20, curHeur)),
+        key.LEFT:  (None, "move left", lambda: puzzle.move(0)),
+        key.UP:    (None, "move up", lambda: puzzle.move(1)),
+        key.DOWN:  (None, "move down", lambda: puzzle.move(2)),
+        key.RIGHT: (None, "move right", lambda: puzzle.move(3)),
+        key.Y:     (None, "change directions", lambda: puzzle.twistmoves()),
+        key.P:     (None, "print current solution", lambda: puzzle.debugsolution()),
+        key.X:     (None, "toggle Debug", lambda: toggleDebug()),
+        key.Q:     (None, "", lambda: puzzle.update([10, 2,  5,  4,
+                                                     0,  11, 13, 8,
+                                                     3,  7,  6,  12,
+                                                     14, 1,  9,  15])),
+        # deprecated
+        key.C:     (None, "deprecated", lambda: puzzle.debugheuristic()),
+        key.H:     (None, "deprecated", lambda: puzzle.calchint())}
 
     pyglet.app.run()
 
