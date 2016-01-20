@@ -691,12 +691,14 @@ def on_draw():
     for y in range(puzzle.dim[1]):
         for x in range(puzzle.dim[0]):
             tile = str(puzzle.tile(x, y))
+            size = font_number
             if tile == '0':
                 tile = '⋅'
+                size = int(size * 2)
                 if puzzle.hint is not None:
                     tile = str(puzzle.hint)
 
-            number = pyglet.text.Label(tile, font_size=font_number,
+            number = pyglet.text.Label(tile, font_size=size,
                 x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
                 y=offsety+(y+1)*(maxdimension/(puzzle.dim[1]+1)),
                 anchor_x='center', anchor_y='center')
@@ -714,9 +716,11 @@ def on_draw():
 
         labels.append((text, 16, y))
 
-    right = window.width - 130
+    right = window.width - 180
     labels.append(("Hint: " + str(puzzle.hint), right, top))
-    labels.append(("Debug: " + str(debug), right, top - font_large))
+    labels.append(("Debug: " + str(debug), right, top - 1.5*font_small))
+    labels.append(("Solution: " + str(len(puzzle.solution)) + " steps",
+                   right, top - 3*font_small))
 
     # ---- Draw controls
     x = line = round(1.5*font_small)
