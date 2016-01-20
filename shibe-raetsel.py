@@ -749,75 +749,7 @@ def on_draw():
 
 @window.event
 def on_key_press(symbol, modifiers):
-    global puzzle, curHeur, searches, heuristics, debug
-
-    if symbol == key.B:
-        puzzle.solve(puzzle.search(searches[0], curHeur, _debug=debug))
-
-    elif symbol == key.A:
-        puzzle.solve(puzzle.search(searches[1], curHeur, _debug=debug))
-
-    elif symbol == key.I:
-        puzzle.solve(puzzle.search(searches[2], curHeur, _debug=debug))
-
-    elif symbol == key.X:
-        toggleDebug()
-
-    elif symbol == key.ENTER:   # step to solved state
-        puzzle.reset()
-
-    elif symbol == key.Q:
-        # testpuzzles
-        # len=61
-        # puzzle.update([14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3])
-        # len=53
-        # puzzle.update([7,15,10,6,4,9,0,3,11,12,1,5,2,14,13,8])
-        # len=41
-        puzzle.update([10, 2, 5, 4, 0, 11, 13, 8, 3, 7, 6, 12, 14, 1, 9, 15])
-        # puzzle.checkparity()  # update does check parity
-        print(puzzle.solvable)
-        # old big
-        # puzzle.update([6, 7, 14, 8, 5, 1, 15, 12, 13, 0, 10, 9, 4, 2, 3, 11])
-
-    elif symbol == key.SPACE:
-        puzzle.step()
-
-    elif symbol == key.C:
-        puzzle.debugheuristic()
-
-    elif symbol == key.H:
-        puzzle.calchint()
-
-    elif symbol == key.R:
-        puzzle.randomize()
-
-    elif symbol == key.T:
-        puzzle.randomize(20, curHeur)
-
-    elif symbol == key.E:
-        toggleHeuristic()
-
-    elif symbol == key.LEFT:
-        puzzle.move(0)
-
-    elif symbol == key.RIGHT:
-        puzzle.move(3)
-
-    elif symbol == key.UP:
-        puzzle.move(1)
-
-    elif symbol == key.DOWN:
-        puzzle.move(2)
-
-    elif symbol == key.Y:
-        puzzle.twistmoves()
-
-    elif symbol == key.P:
-        puzzle.debugsolution()
-
-    else:
-        if debug:
-            print("Unassigned Key: " + str(symbol))
+    keys[symbol][2]()
 
 
 def toggleHeuristic():
