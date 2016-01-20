@@ -617,6 +617,7 @@ def idaSearch(startPos, endPos, heurf,
         path = idaIteration(["x",startPos], 1, bound, endPos, heurf)
 
         if path is not None:
+            #remove x in moves before returning
             moves = path[0]
             node = path[-1]
             return [moves[1:],startPos]
