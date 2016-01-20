@@ -74,8 +74,8 @@ class Puzzle(object):
         for element in self.solution:
             print(element)
 
-    def heuristic(self, heuristic):
-        return heuristic.run(self.state(), self.dim)
+    def heuristic(self, _heuristic=curHeur):
+        return _heuristic.run(self.state(), self.dim)
 
     def debugheuristic(self):
         print("Heuristic cost: " + str(self.heuristic()))
@@ -268,9 +268,9 @@ class Search(object):
         if _heuristic is None:
             _heuristic = Heuristic("Zero", lambda p, d: 0)
 
-        print("Searching with " + self.name + "\n"
-              "    Heuristic function: " + _heuristic.name + "\n" +
-              "    Debug is " + str(_debug))
+        print("\nSearching with " + self.name +
+              "\n    Heuristic function: " + _heuristic.name +
+              "\n    Debug is " + str(_debug))
 
         solution = ('', [])
 
@@ -756,7 +756,7 @@ def on_key_press(symbol, modifiers):
         puzzle.solve(puzzle.search(searches[2], curHeur, _debug=debug))
 
     elif symbol == key.X:
-        debug = not debug
+        toggleDebug()
 
     elif symbol == key.ENTER:   # step to solved state
         puzzle.reset()
@@ -787,11 +787,10 @@ def on_key_press(symbol, modifiers):
         puzzle.randomize()
 
     elif symbol == key.T:
-        puzzle.randomize(_bound=20, _heuristic=curHeur)
+        puzzle.randomize(20, curHeur)
 
     elif symbol == key.E:
-        new_index = (heuristics.index(curHeur)+1) % len(heuristics)
-        curHeur = heuristics[new_index]
+        toggleHeuristic()
 
     elif symbol == key.LEFT:
         puzzle.move(0)
@@ -816,7 +815,19 @@ def on_key_press(symbol, modifiers):
             print("Unassigned Key: " + str(symbol))
 
 
-if __name__ == '__main__':
+def toggleHeuristic():
+    global curHeur, heuristics
+    new_index = (heuristics.index(curHeur)+1) % len(heuristics)
+    curHeur = heuristics[new_index]
+
+
+def toggleDebug():
+    global debug
+    debug = not debug
+
+
+def main():
+    global puzzle, heuristics, searches, curHeur, curSearch
 
     puzzle = Puzzle(4, 4)
 
@@ -836,3 +847,7 @@ if __name__ == '__main__':
     curSearch = searches[0]
 
     pyglet.app.run()
+
+
+if __name__ == '__main__':
+    main()
