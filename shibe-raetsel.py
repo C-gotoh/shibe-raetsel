@@ -690,11 +690,9 @@ def on_draw():
     # ---- Draw puzzle
     for y in range(puzzle.dim[1]):
         for x in range(puzzle.dim[0]):
-            tile = puzzle.tile(x, y)
-            if tile is 0:
-                tile = "⋅"
-            else:
-                tile = str(tile)
+            tile = str(puzzle.tile(x, y))
+            if tile == '0':
+                tile = '⋅'
 
             number = pyglet.text.Label(
                 tile,
@@ -707,12 +705,11 @@ def on_draw():
 
     # ---- Construct labels
     top = window.height - font_large
-    labels = [("Current heuristic function: ", 16, top)]
+    labels = [("Current heuristic function: ", 10, top)]
     for h in heuristics:
         prefix = " "
-        if curHeur is h:
+        if h is curHeur:
             prefix = "*"
-
         y = top - len(labels) * round(1.5 * font_small)
         text = prefix + " " + str(puzzle.heuristic(h)) + ' ' + h.name
 
@@ -723,23 +720,13 @@ def on_draw():
     labels.append(("Debug: " + str(debug), right, top - font_large))
 
     # ---- Draw controls
-    controls = "Controls:\n" +\
-        "  ←↑↓→ - move tiles\n" +\
-        "  'b'  - search BFS\n" +\
-        "  'a'  - search A*\n" +\
-        "  'i'  - search IDA*\n" +\
-        "  'r'  - generate random puzzle\n" +\
-        "   ↲   - reset puzzle\n" +\
-        "   ␣   - step through solution\n" +\
-        "  'c'  - print current heuristic cost\n" +\
-        "  'e'  - change heuristic function\n" +\
-        "  'h'  - get a hint for next move"
+    x = line = round(1.5*font_small)
+    for char, desc, func in list(keys.values())[::-1]:
+        if char is not None:
+            labels.append((char+' - '+desc, 20, x))
+            x += line
 
-    clines = controls.split("\n")
-
-    for i in range(len(clines)):
-        labels.append((clines[i], 16,
-                       (len(clines)+1-i)*round(1.5*font_small)))
+    labels.append(("Controls:", 10, x))
 
     font = 'Monospace'
     for text, posx, posy in labels:
