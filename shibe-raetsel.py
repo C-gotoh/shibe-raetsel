@@ -23,6 +23,8 @@ keys = {}
 # be a little bit verbose
 debug = False
 
+flag_hint = False
+
 # Performance Data
 added_nodes = 0
 closed_nodes = 0
@@ -140,9 +142,6 @@ class Puzzle(object):
             self.update(getNeighborStates(
                                 self.board,
                                 self.dim)[int(move)], _sol=rest)
-        else:
-            # this case is for old solution types
-            self.update(self.solution.pop(0))
 
         if self.solution == '':
             if not self.solved:
@@ -695,7 +694,7 @@ def on_draw():
             if tile == '0':
                 tile = '⋅'
                 size = int(size * 2)
-                if puzzle.hint is not None:
+                if flag_hint and puzzle.hint is not None:
                     tile = str(puzzle.hint)
 
             number = pyglet.text.Label(tile, font_size=size,
@@ -717,10 +716,10 @@ def on_draw():
         labels.append((text, 16, y))
 
     right = window.width - 180
-    labels.append(("Hint: " + str(puzzle.hint), right, top))
+    labels.append(("Hint: " + str(flag_hint), right, top))
     labels.append(("Debug: " + str(debug), right, top - 1.5*font_small))
     labels.append(("Solution: " + str(len(puzzle.solution)) + " steps",
-                   right, top - 3*font_small))
+                   right, top - 4.5*font_small))
 
     # ---- Draw controls
     x = line = round(1.5*font_small)
@@ -754,6 +753,11 @@ def toggleDebug():
     debug = not debug
 
 
+def toggleHint():
+    global flag_hint
+    flag_hint = not flag_hint
+
+
 def main():
     global puzzle, searches, curSearch, heuristics, curHeur, keys
 
@@ -782,8 +786,9 @@ def main():
                     lambda: puzzle.solve(puzzle.search(searches[1], curHeur, debug))),
         key.SPACE: ('␣',  "step through solution", lambda: puzzle.step()),
         key.ENTER: ('↲',  "reset puzzle", lambda: puzzle.reset()),
-        key.R:     ('r',  "random puzzle", lambda: puzzle.randomize()),
         key.E:     ('e',  "change heuristic", lambda: toggleHeuristic()),
+        key.H:     ('h',  "show/hide hint", lambda: toggleHint()),
+        key.R:     ('r',  "random puzzle", lambda: puzzle.randomize()),
         key.T:     (None, "(random) puzzle", lambda: puzzle.randomize(20, curHeur)),
         key.LEFT:  (None, "move left", lambda: puzzle.move(0)),
         key.UP:    (None, "move up", lambda: puzzle.move(1)),
@@ -797,8 +802,7 @@ def main():
                                                      3,  7,  6,  12,
                                                      14, 1,  9,  15])),
         # deprecated
-        key.C:     (None, "deprecated", lambda: puzzle.debugheuristic()),
-        key.H:     (None, "deprecated", lambda: puzzle.calchint())}
+        key.C:     (None, "deprecated", lambda: puzzle.debugheuristic())}
 
     pyglet.app.run()
 
