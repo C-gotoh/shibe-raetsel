@@ -546,7 +546,7 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
     global heuristic_calls
     heuristic_calls = 0
 
-    item = (_heurf(('', start_pos), puzzle.dim), 1, ('', start_pos))
+    item = (_heurf(('', start_pos), puzzle.dim), 1, (' ', start_pos))
     frontier.put(item)
 
     while not frontier.empty():
@@ -565,7 +565,7 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
             visited.add(str(head))
 
             if head == end_state:
-                return (path[0], start_pos)
+                return (path[0][1:], start_pos)
 
             if _debug and len(visited) % 10000 == 0:
                 print("----------\n" +
