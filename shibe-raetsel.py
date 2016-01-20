@@ -20,21 +20,17 @@ heuristics = []
 curHeur = None
 keys = {}
 
-# be a little bit verbose
-debug = False
-
+# Flags
+flag_debug = False
 flag_hint = False
 
 # Performance Data
-added_nodes = 0
-closed_nodes = 0
-omitted_nodes = 0
 heuristic_calls = 0
 
 # ui
 font_large = 32
 font_small = 13
-font_number = 20
+font_tile = 20
 
 window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
 maxdimension = min(window.width, window.height)
@@ -235,7 +231,7 @@ class Puzzle(object):
         new = neighbors[direction]
 
         if new is None:
-            if debug:
+            if flag_debug:
                 print("This move is not possible (" + str(direction) + ")")
             return None
 
@@ -687,7 +683,7 @@ def on_draw():
     for y in range(puzzle.dim[1]):
         for x in range(puzzle.dim[0]):
             tile = str(puzzle.tile(x, y))
-            size = font_number
+            size = font_tile
             if tile == '0':
                 tile = '⋅'
                 size = int(size * 2)
@@ -714,7 +710,7 @@ def on_draw():
 
     right = window.width - 180
     labels.append(("Hint: " + str(flag_hint), right, top))
-    labels.append(("Debug: " + str(debug), right, top - 1.5*font_small))
+    labels.append(("Debug: " + str(flag_debug), right, top - 1.5*font_small))
     labels.append(("Solution: " + str(len(puzzle.solution)) + " steps",
                    right, top - 4.5*font_small))
 
@@ -746,8 +742,8 @@ def toggleHeuristic():
 
 
 def toggleDebug():
-    global debug
-    debug = not debug
+    global flag_debug
+    flag_debug = not flag_debug
 
 
 def toggleHint():
@@ -776,11 +772,11 @@ def main():
 
     keys = {
         key.B:     ('b',  "search BFS",
-                    lambda: puzzle.solve(puzzle.search(searches[0], curHeur, debug))),
+                    lambda: puzzle.solve(puzzle.search(searches[0], curHeur, flag_debug))),
         key.A:     ('a',  "search A*",
-                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, debug))),
+                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
         key.I:     ('i',  "search IDA*",
-                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, debug))),
+                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
         key.SPACE: ('␣',  "step through solution", lambda: puzzle.step()),
         key.ENTER: ('↲',  "reset puzzle", lambda: puzzle.reset()),
         key.E:     ('e',  "change heuristic", lambda: toggleHeuristic()),
