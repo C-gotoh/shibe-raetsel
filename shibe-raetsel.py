@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 # Imports
+import sys
+import math
 import pyglet  # INSTALL
 import pyglet.gl
 from pyglet.window import key
@@ -754,7 +756,23 @@ def toggleHint():
 def main():
     global puzzle, searches, curSearch, heuristics, curHeur, keys
 
-    puzzle = Puzzle(4, 4)
+    if len(sys.argv) == 2:
+        board = sys.argv[1].replace(' ', '').split(',')
+        if '0' not in board:
+            print("Invalid init state")
+            sys.exit(0)
+        x = int(math.sqrt(len(board)))
+        while x > 0:
+            if len(board) % x != 0:
+                x -= 1
+            else:
+                break
+        puzzle = Puzzle(x, len(board)//x)
+        puzzle.update(board)
+    elif len(sys.argv) == 1:
+        puzzle = Puzzle(4, 4)
+    else:
+        print("Unable to parse given data")
 
     heuristics = [Heuristic("Manhattan distance", hCostManhattan),
                   Heuristic("Misplaced tiles", hCostMpt),
