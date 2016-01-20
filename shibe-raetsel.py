@@ -736,7 +736,8 @@ def on_draw():
 
 @window.event
 def on_key_press(symbol, modifiers):
-    keys[symbol][2]()
+    if symbol in keys.keys():
+        keys[symbol][2]()
 
 
 def toggleHeuristic():
