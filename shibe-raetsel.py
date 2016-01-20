@@ -768,13 +768,13 @@ def main():
         if 0 not in board:
             print("Error reading input! no zero")
             sys.exit(0)
-        x = int(math.sqrt(len(board)))
-        while x > 0:
-            if len(board) % x != 0:
-                x -= 1
+        y = int(math.sqrt(len(board)))
+        while y > 0:
+            if len(board) % y != 0:
+                y -= 1
             else:
                 break
-        puzzle = Puzzle(x, len(board)//x)
+        puzzle = Puzzle(len(board)//y, y)
         puzzle.update(board)
     elif len(sys.argv) == 1:
         puzzle = Puzzle(4, 4)
