@@ -86,17 +86,21 @@ class Puzzle(object):
 
     def calchint(self):
         if not self.solved:
-            if self.solution is '':
-                return None
-            #    solution = puzzle.runIDA(heur=hCostMhtn2x)
+            if self.solution is not '':
+                hints = ["left", "up", "down", "right"]
+                if puzzle.twisted:
+                    hints.reverse()
 
-            hints = ["left", "up", "down", "right"]
-            if puzzle.twisted:
-                hints.reverse()
-
-            self.hint = hints[int(self.solution[0])]
+                self.hint = hints[int(self.solution[0])]
+            else:
+                # calc a new hint
+                # puzzle.solve(puzzle.search(searches[2],
+                #                           heuristics[len(heuristics) - 1],
+                #                           False))
+                self.hint = None
         else:
             self.hint = None
+        return None
 
     # Set the game to solved state
     def reset(self):
@@ -115,14 +119,12 @@ class Puzzle(object):
             self.solution = solution
         else:
             raise(ValueError("The solution in solve() must be str or tuple"))
-            # self.solution = pathConv(solution, self.dim)[0]
 
         self.calchint()
 
         return None
 
-    # If there is a solution,
-    # go one strep throu it
+    # If there is a solution go one step further
     # doesnt work with ida solutions yet
     def step(self):
         if isinstance(self.solution, tuple):
@@ -634,15 +636,15 @@ def idaSearch(startPos, endPos, heurf,
 # Used by IDA to search until a given bound
 def idaIteration(path, lenpath, bound, endPos, heur):
     visited = set()
-    frontier = []
-    frontier.append(path)
+    frontier = ['']
+    frontier.append(path) 
     while frontier:
         path = frontier.pop()
         node = path[-1]
         if str(node) not in visited:
             visited.add(str(node))
             if node == endPos:
-                return path
+                return path[1:]
             for neighbor in getNeighborStates(node, puzzle.dim):
                 if neighbor is None or neighbor == path[-2] or str(neighbor) in visited:
                     continue
@@ -757,9 +759,9 @@ def main():
                   Heuristic("Misplaced tiles", hCostMpt),
                   Heuristic("Tiles out of row & column", hCostToorac),
                   Heuristic("Linear conflicts", hCostLinearConflict),
-                  Heuristic("Manhattan * 3", hCostMhtn3x),
+                  Heuristic("Manhattan * 1.5", hCostMhtn1_5x),
                   Heuristic("Manhattan * 2", hCostMhtn2x),
-                  Heuristic("Manhattan * 1.5", hCostMhtn1_5x)]
+                  Heuristic("Manhattan * 3", hCostMhtn3x)]
     curHeur = heuristics[0]
 
     searches = [Search("BFS", Queue),
