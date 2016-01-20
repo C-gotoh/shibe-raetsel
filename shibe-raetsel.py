@@ -757,9 +757,16 @@ def main():
     global puzzle, searches, curSearch, heuristics, curHeur, keys
 
     if len(sys.argv) == 2:
-        board = sys.argv[1].replace(' ', '').split(',')
-        if '0' not in board:
-            print("Invalid init state")
+        board = []
+        given = sys.argv[1].replace(' ', '').split(',')
+        for tile in given:
+            tile = int(tile)
+            if tile in board or tile < 0 or tile > len(given):
+                print("Error reading input!")
+                sys.exit(0)
+            board.append(tile)
+        if 0 not in board:
+            print("Error reading input! no zero")
             sys.exit(0)
         x = int(math.sqrt(len(board)))
         while x > 0:
