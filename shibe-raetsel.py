@@ -87,7 +87,7 @@ class Puzzle(object):
     def calchint(self):
         if not self.solved:
             if self.solution is not '':
-                hints = ["left", "up", "down", "right"]
+                hints = ['←', '↑', '↓', '→']
                 if puzzle.twisted:
                     hints.reverse()
 
@@ -637,7 +637,7 @@ def idaSearch(startPos, endPos, heurf,
 def idaIteration(path, lenpath, bound, endPos, heur):
     visited = set()
     frontier = ['']
-    frontier.append(path) 
+    frontier.append(path)
     while frontier:
         path = frontier.pop()
         node = path[-1]
@@ -693,14 +693,13 @@ def on_draw():
             tile = str(puzzle.tile(x, y))
             if tile == '0':
                 tile = '⋅'
+                if puzzle.hint is not None:
+                    tile = str(puzzle.hint)
 
-            number = pyglet.text.Label(
-                tile,
-                font_size=font_number,
+            number = pyglet.text.Label(tile, font_size=font_number,
                 x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
                 y=offsety+(y+1)*(maxdimension/(puzzle.dim[1]+1)),
-                anchor_x='center',
-                anchor_y='center')
+                anchor_x='center', anchor_y='center')
             number.draw()
 
     # ---- Construct labels
