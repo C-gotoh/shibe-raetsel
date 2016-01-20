@@ -636,6 +636,9 @@ def idaSearch(startPos, endPos, heurf,
 # Used by IDA to search until a given bound
 def idaIteration(path, lenpath, bound, endPos, heur):
     visited = set()
+    visited.add(str(path[-1]))
+    visited_dict = {}
+    visited_dict[str(path[-1])] = 0
     frontier = []
     frontier.append(path)
     while frontier:
@@ -656,30 +659,54 @@ def idaIteration(path, lenpath, bound, endPos, heur):
 
             left, up, down, right = getNeighborStates(node, puzzle.dim)
 
-            if left is not None and moves[-1] != '3':# and str(left) not in visited:
+            estlen = 0
+            string = ""
+            if left is not None and moves[-1] != '3':
                 estlen = movelen + heur([left], puzzle.dim)
                 if estlen > bound:
                     continue
-                frontier.append((moves + '0', left))
+                string = str(left)
+                if string not in visited or visited_dict[string] > movelen + 1:
+                    if string in visited:
+                        if visited_dict[string] > estlen:
+                            print("update")
+                    visited_dict[string] = movelen + 1
+                    #print("ol", visited_dict[string])
+                    #print(visited_dict)
+                    visited.add(string)
+                    frontier.append((moves + '0', left))
 
-            if up is not None and moves[-1] != '2': # and str(up) not in visited:
+            if up is not None and moves[-1] != '2':
                 estlen = movelen + heur([up], puzzle.dim)
                 if estlen > bound:
                     continue
-                frontier.append((moves + '1', up))
+                string = str(up)
+                if string not in visited or visited_dict[string] > movelen + 1:
+                    visited_dict[string] = movelen + 1
+                    visited.add(string)
+                    frontier.append((moves + '1', up))
 
-            if down is not None and moves[-1] != '1': # and str(down) not in visited:
+            if down is not None and moves[-1] != '1':
                 estlen = movelen + heur([down], puzzle.dim)
                 if estlen > bound:
                     continue
-                frontier.append((moves + '2', down))
+                string = str(down)
+                if string not in visited or visited_dict[string] > movelen + 1:
+                    visited_dict[string] =  movelen + 1
+                    visited.add(string)
+                    frontier.append((moves + '2', down))
 
-            if right is not None and moves[-1] != '0': # and str(right) not in visited:
+            if right is not None and moves[-1] != '0':
                 estlen = movelen + heur([right], puzzle.dim)
                 if estlen > bound:
                     continue
-                frontier.append((moves + '3', right))
+                string = str(right)
+                if string not in visited or visited_dict[string] > movelen + 1:
+                    visited_dict[string] = movelen + 1
+                    visited.add(string)
+                    frontier.append((moves + '3', right))
 
+            
             # frontier elements: (moves, state)
 
 
@@ -857,7 +884,7 @@ def main():
         #                                             12, 11, 10, 9,
         #                                             8,  7,  6,  5,
         #                                             4, 3,  2,  1])),
-        
+
         # deprecated
         key.C:     (None, "deprecated", lambda: puzzle.debugheuristic())}
 
