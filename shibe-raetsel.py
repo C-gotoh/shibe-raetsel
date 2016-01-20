@@ -319,18 +319,19 @@ class Search(object):
     # converts a given path in ida format
     # to a string of moves plus start
     def pathConv(self, path, dim):
-        genpath = ""
-        idapath = path[:]
-        start = idapath[0]
+        #genpath = ""
+        #idapath = path[:]
+        #start = idapath[0]
 
-        while len(idapath) > 1:
-            possible = getNeighborStates(idapath.pop(0), dim)
-            current = idapath[0]
-            for i in range(4):
-                if current == possible[i]:
-                    genpath = genpath + str(i)
+        #while len(idapath) > 1:
+        #    possible = getNeighborStates(idapath.pop(0), dim)
+        #    current = idapath[0]
+        #    for i in range(4):
+        #        if current == possible[i]:
+        #            genpath = genpath + str(i)
 
-        return genpath, start
+        #return genpath, start
+        return path[0], path[-1]
 
 
 class Heuristic(object):
@@ -603,19 +604,23 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 # Do a search with IDA
 def idaSearch(startPos, endPos, heurf,
               _dataStructure=Queue, _debug=False):
-    bound = heurf([startPos], puzzle.dim)
-
-    if _debug:
+    #bound = heurf([startPos], puzzle.dim)
+    bound = 0
+    if True:
+    #if _debug:
         tstart = timer()
         prev_elapsed = 0
 
     while True:
-        path = idaIteration([startPos], 1, bound, endPos, heurf)
+        path = idaIteration(["x",startPos], 1, bound, endPos, heurf)
 
         if path is not None:
-            return path
+            moves = path[0]
+            node = path[-1]
+            return [moves[1:],startPos]
 
-        if _debug:
+        if True:
+        #if _debug:
             tnow = timer()
             elapsed_time = tnow - tstart
             diff = elapsed_time - prev_elapsed
@@ -628,24 +633,52 @@ def idaSearch(startPos, endPos, heurf,
 # Used by IDA to search until a given bound
 def idaIteration(path, lenpath, bound, endPos, heur):
     visited = set()
-    frontier = ['']
+    frontier = []
     frontier.append(path)
     while frontier:
+        #print(frontier)
         path = frontier.pop()
+        #print(path)
+        moves = path[0]
         node = path[-1]
-        if str(node) not in visited:
-            visited.add(str(node))
+        if True:
+        #if str(node) not in visited:
+            #visited.add(str(node))
             if node == endPos:
-                return path[1:]
-            for neighbor in getNeighborStates(node, puzzle.dim):
-                if neighbor is None or neighbor == path[-2] or str(neighbor) in visited:
-                    continue
-                estlen = len(path) + heur([neighbor], puzzle.dim)
+                return path
+            #print(moves)
+
+            # moves includes start-symbol x, therefore subtract 1
+            movelen = len(moves) - 1
+
+            left, up, down, right = getNeighborStates(node, puzzle.dim)
+
+            if left is not None and moves[-1] != '3':# and str(left) not in visited:
+                estlen = movelen + heur([left], puzzle.dim)
                 if estlen > bound:
                     continue
-                new_path = path[:]
-                new_path.append(neighbor)
-                frontier.append(new_path)
+                frontier.append((moves + '0', left))
+
+            if up is not None and moves[-1] != '2': # and str(up) not in visited:
+                estlen = movelen + heur([up], puzzle.dim)
+                if estlen > bound:
+                    continue
+                frontier.append((moves + '1', up))
+
+            if down is not None and moves[-1] != '1': # and str(down) not in visited:
+                estlen = movelen + heur([down], puzzle.dim)
+                if estlen > bound:
+                    continue
+                frontier.append((moves + '2', down))
+
+            if right is not None and moves[-1] != '0': # and str(right) not in visited:
+                estlen = movelen + heur([right], puzzle.dim)
+                if estlen > bound:
+                    continue
+                frontier.append((moves + '3', right))
+
+            # frontier elements: (moves, state)
+
 
     print("Visited: " + str(len(visited)))
     return None
@@ -776,7 +809,7 @@ def main():
         key.A:     ('a',  "search A*",
                     lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
         key.I:     ('i',  "search IDA*",
-                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
+                    lambda: puzzle.solve(puzzle.search(searches[2], curHeur, flag_debug))),
         key.SPACE: ('␣',  "step through solution", lambda: puzzle.step()),
         key.ENTER: ('↲',  "reset puzzle", lambda: puzzle.reset()),
         key.E:     ('e',  "change heuristic", lambda: toggleHeuristic()),
@@ -794,6 +827,11 @@ def main():
                                                      0,  11, 13, 8,
                                                      3,  7,  6,  12,
                                                      14, 1,  9,  15])),
+        #key.Q:     (None, "", lambda: puzzle.update([0, 15, 14,  13,
+        #                                             12, 11, 10, 9,
+        #                                             8,  7,  6,  5,
+        #                                             4, 3,  2,  1])),
+        
         # deprecated
         key.C:     (None, "deprecated", lambda: puzzle.debugheuristic())}
 
