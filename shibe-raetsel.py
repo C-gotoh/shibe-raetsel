@@ -373,16 +373,20 @@ def hCostLinearConflict(path, dim):
         # for cols
         maxValue = 0
         for i in range(dim[1]):
-            value = state[y*dim[0]+x]
-            if value in puzzle.columnlist[i]:
-                if value == 0:
-                    continue
+            value = state[i*dim[0]+y]
+            if value in puzzle.columnlist[y] and value != 0:
                 if value >= maxValue:
                     maxValue = value
                 else:
                     cost += 2
     return cost
 
+def toString(state):
+    hashint = 0
+    for y in range(dim[1]):
+        for x in range(dim[0]):
+            state[i]
+    return hashint
 
 # highly used function!
 #
@@ -963,8 +967,10 @@ def main():
                 Search("IDA*", None)]
     curSearch = searches[0]
 
-    #testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
-    testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
+    testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
+    #testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
+    #61 steps
+    #testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
     print(testpuzzle)
 
     keys = {
