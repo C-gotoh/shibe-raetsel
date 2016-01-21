@@ -436,19 +436,18 @@ def hCostMhtn1_5x(path, dim):
 def hCostToorac(path, dim):
     state = path[-1]
     cost = 0
-    for y in range(dim[1]):
-        row_start = y*dim[0]
-        for x in range(dim[0]):
-            expectedNumber = x + row_start + 1
-            if expectedNumber == dim[0]*dim[1]:
-                continue
-            if expectedNumber not in state[row_start:row_start+dim[1]]:
-                cost += 1
-            # uses global puzzle
-            # TODO dont
-            if expectedNumber not in puzzle.columnlist[x]:
-                cost += 1
+    for i, num in enumerate(state):
+        if num == 0: continue
+        cur_row = i // dim[0]
+        cur_col = i % dim[0]
+        should_row = (num-1) // dim[0]
+        should_col = (num-1) % dim[0]
+        if cur_row != should_row:
+            cost += 1
+        if cur_col != should_col:
+            cost += 1
     return cost
+
 
 
 # highly used function!
