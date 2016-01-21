@@ -395,17 +395,13 @@ def toString(state):
 def hCostManhattan(path, dim):
     state = path[-1]
     cost = 0
-    xtimesy = dim[0] * dim[1]
-    for y in range(dim[1]):
-        for x in range(dim[0]):
-            expectednumber = y * dim[0] + x + 1
-            if expectednumber == xtimesy:
-                # expectednumber = 0
-                continue
-            actualposition = getStatePosition(state, dim, expectednumber)
-            manhattanDist = abs(x - actualposition[0])\
-                + abs(y - actualposition[1])
-            cost += manhattanDist
+    for row in range(dim[1]):
+        for col in range(dim[0]):
+            num = state[row * dim[0] + col]
+            if num is 0: continue
+            should_row = (num-1) // dim[0]
+            should_col = (num-1) % dim[0]
+            cost = cost + abs(should_row - row) + abs(should_col - col)
     return cost
 
 
