@@ -373,16 +373,20 @@ def hCostLinearConflict(path, dim):
         # for cols
         maxValue = 0
         for i in range(dim[1]):
-            value = state[y*dim[0]+x]
-            if value in puzzle.columnlist[i]:
-                if value == 0:
-                    continue
+            value = state[i*dim[0]+y]
+            if value in puzzle.columnlist[y] and value != 0:
                 if value >= maxValue:
                     maxValue = value
                 else:
                     cost += 2
     return cost
 
+def toString(state):
+    hashint = 0
+    for y in range(dim[1]):
+        for x in range(dim[0]):
+            state[i]
+    return hashint
 
 # highly used function!
 #
@@ -601,7 +605,16 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 def idaSearch(startPos, endPos, heurf,
               _dataStructure=Queue, _debug=False):
     #bound = heurf([startPos], puzzle.dim)
-    bound = 0
+
+    global global_added_nodes
+
+    global_added_nodes = 0
+    
+    # for increasing bound by 2 you need to find the right start bound
+    # that is 1 the MD of the blank tile to its final position is odd, 0 else
+    x, y = getStatePosition(startPos,puzzle.dim,0)
+    dist = abs(x-puzzle.dim[0]) + abs(y-puzzle.dim[1])
+    bound = (dist%2)
     if True:
     #if _debug:
         tstart = timer()
@@ -624,14 +637,22 @@ def idaSearch(startPos, endPos, heurf,
             prev_elapsed = elapsed_time
             print("Iteration " + str(bound) + " done in " + str(elapsed_time) +
                   " (cumulated)" + " add.: " + str(diff))
-        bound += 1
+        bound += 2
 
 
 # Used by IDA to search until a given bound
 def idaIteration(path, lenpath, bound, endPos, heur):
+    global global_added_nodes
     visited = set()
+    visited.add(str(path[-1]))
+    visited_dict = {}
+    visited_dict[str(path[-1])] = 0
     frontier = []
     frontier.append(path)
+    added_nodes = 0
+    startTime = timer()
+    start = timer()
+    stop = timer()
     while frontier:
         #print(frontier)
         path = frontier.pop()
@@ -642,6 +663,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
         #if str(node) not in visited:
             #visited.add(str(node))
             if node == endPos:
+                print("Visited: " + str(len(visited)))
                 return path
             #print(moves)
 
@@ -650,30 +672,157 @@ def idaIteration(path, lenpath, bound, endPos, heur):
 
             left, up, down, right = getNeighborStates(node, puzzle.dim)
 
-            if left is not None and moves[-1] != '3':# and str(left) not in visited:
+            estlen = 0
+            string = ""
+            if left is not None and moves[-1] != '3':
                 estlen = movelen + heur([left], puzzle.dim)
-                if estlen > bound:
-                    continue
-                frontier.append((moves + '0', left))
+                if estlen <= bound:
+                    #continue
+                    string = str(left)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([left], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))      
+                        #if string in visited:
+                        #    if visited_dict[string] > estlen:
+                        #        print("update")
+                        visited_dict[string] = estlen
+                        #print("ol", visited_dict[string])
+                        #print(visited_dict)
+                        visited.add(string)
+                        frontier.append((moves + '0', left))
 
-            if up is not None and moves[-1] != '2': # and str(up) not in visited:
+            if up is not None and moves[-1] != '2':
                 estlen = movelen + heur([up], puzzle.dim)
-                if estlen > bound:
-                    continue
-                frontier.append((moves + '1', up))
+                if estlen <= bound:
+                    #print("fuckup")
+                    #continue
+                    string = str(up)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([up], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))      
+                        visited_dict[string] = estlen
+                        visited.add(string)
+                        frontier.append((moves + '1', up))
 
-            if down is not None and moves[-1] != '1': # and str(down) not in visited:
+            if down is not None and moves[-1] != '1':
                 estlen = movelen + heur([down], puzzle.dim)
-                if estlen > bound:
-                    continue
-                frontier.append((moves + '2', down))
+                if estlen <= bound:
+                    #print("fuckdown")
+                    #continue
+                    string = str(down)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([down], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))     
+                        visited_dict[string] =  estlen
+                        visited.add(string)
+                        frontier.append((moves + '2', down))
 
-            if right is not None and moves[-1] != '0': # and str(right) not in visited:
+            if right is not None and moves[-1] != '0':
                 estlen = movelen + heur([right], puzzle.dim)
-                if estlen > bound:
-                    continue
-                frontier.append((moves + '3', right))
+                if estlen <= bound:
+                    #print("fuckright")
+                    #continue
+                    string = str(right)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([right], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))      
+                        visited_dict[string] = estlen
+                        visited.add(string)
+                        frontier.append((moves + '3', right))
 
+            
             # frontier elements: (moves, state)
 
 
@@ -780,6 +929,13 @@ def toggleHint():
     global flag_hint
     flag_hint = not flag_hint
 
+def convertPuzzle(state):
+    for i in range(len(state)):
+        if state[i] == "":
+            state[i] = 0
+        else:
+            state[i] += 1
+    return state
 
 def main():
     global puzzle, searches, curSearch, heuristics, curHeur, keys
@@ -823,6 +979,12 @@ def main():
                 Search("IDA*", None)]
     curSearch = searches[0]
 
+    #testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
+    testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
+    #61 steps
+    #testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
+    print(testpuzzle)
+
     keys = {
         key.B:     ('b',  "search BFS",
                     lambda: puzzle.solve(puzzle.search(searches[0], curHeur, flag_debug))),
@@ -843,15 +1005,11 @@ def main():
         key.Y:     (None, "change directions", lambda: puzzle.twistmoves()),
         key.P:     (None, "print current solution", lambda: puzzle.debugsolution()),
         key.X:     (None, "toggle Debug", lambda: toggleDebug()),
-        key.Q:     (None, "", lambda: puzzle.update([10, 2,  5,  4,
-                                                     0,  11, 13, 8,
-                                                     3,  7,  6,  12,
-                                                     14, 1,  9,  15])),
+        key.Q:     (None, "", lambda: puzzle.update(testpuzzle)),
         #key.Q:     (None, "", lambda: puzzle.update([0, 15, 14,  13,
         #                                             12, 11, 10, 9,
         #                                             8,  7,  6,  5,
         #                                             4, 3,  2,  1])),
-        
         # deprecated
         key.C:     (None, "deprecated", lambda: puzzle.debugheuristic())}
 
