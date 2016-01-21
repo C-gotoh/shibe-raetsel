@@ -440,18 +440,17 @@ def hCostMhtn1_5x(path, dim):
 def hCostToorac(path, dim):
     state = path[-1]
     cost = 0
-    for i, num in enumerate(state):
-        if num == 0: continue
-        cur_row = i // dim[0]
-        cur_col = i % dim[0]
-        should_row = (num-1) // dim[0]
-        should_col = (num-1) % dim[0]
-        if cur_row != should_row:
-            cost += 1
-        if cur_col != should_col:
-            cost += 1
+    for row in range(dim[1]):
+        for col in range(dim[0]):
+            num = state[row * dim[0] + col]
+            if num is 0: continue
+            should_row = (num-1) // dim[0]
+            should_col = (num-1) % dim[0]
+            if row != should_row:
+                cost += 1
+            if col != should_col:
+                cost += 1
     return cost
-
 
 
 # highly used function!
