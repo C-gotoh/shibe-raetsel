@@ -456,15 +456,11 @@ def hCostToorac(path, dim):
 def hCostMpt(path, dim):
     state = path[-1]
     cost = 0
-    for x in range(dim[0]):
-        for y in range(dim[1]):
-            expectedNumber = x + y * dim[0] + 1
-            if expectedNumber == dim[0]*dim[1]:
-                continue
-            actualnumber = state[y * dim[0] + x]
-            if expectedNumber != actualnumber:
-                cost += 1
-    return cost  # + len(path)
+    for i, num in enumerate(state):
+        exp = i + 1
+        if exp !=  num and exp != 16:
+            cost += 1
+    return cost
 
 
 # highly used function!
