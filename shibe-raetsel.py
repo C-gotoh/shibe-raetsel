@@ -606,6 +606,10 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 def idaSearch(startPos, endPos, heurf,
               _dataStructure=Queue, _debug=False):
     #bound = heurf([startPos], puzzle.dim)
+
+    global global_added_nodes
+
+    global_added_nodes = 0
     
     # for increasing bound by 2 you need to find the right start bound
     # that is 1 the MD of the blank tile to its final position is odd, 0 else
@@ -639,6 +643,7 @@ def idaSearch(startPos, endPos, heurf,
 
 # Used by IDA to search until a given bound
 def idaIteration(path, lenpath, bound, endPos, heur):
+    global global_added_nodes
     visited = set()
     visited.add(str(path[-1]))
     visited_dict = {}
@@ -677,6 +682,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                     string = str(left)
                     if string not in visited or visited_dict[string] > estlen:
                         added_nodes += 1
+                        global_added_nodes += 1
                         if added_nodes % 10000 == 0:
                             stop = timer()
                             delta = (stop - start) / 1000
@@ -685,20 +691,21 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             # Set True to enable debugging
                             if True:
                                 print("\nCurrent State: ")
-                                print(left)
-                                print("\nPath to Target: ")
+                                print(right)
+                                print("\nPath: ")
                                 print(moves)
-                                print("\nUsed Steps: ", movelen)
-                                print("Limit: ", bound)
-                                print("Estimate Steps: ", heur([left], puzzle.dim))
-                                print("Estimate Costs: ", estlen)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([left], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
                                 print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
                                 print("Closed nodes: ", len(visited))
                                 #print("Ommited Nodes: ", omitted_nodes)
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s {}ms".format(deltaSecs, delta))    
+                                print("Used Time: {}s".format(deltaSecs))      
                         #if string in visited:
                         #    if visited_dict[string] > estlen:
                         #        print("update")
@@ -716,6 +723,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                     string = str(up)
                     if string not in visited or visited_dict[string] > estlen:
                         added_nodes += 1
+                        global_added_nodes += 1
                         if added_nodes % 10000 == 0:
                             stop = timer()
                             delta = (stop - start) / 1000
@@ -724,20 +732,21 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             # Set True to enable debugging
                             if True:
                                 print("\nCurrent State: ")
-                                print(up)
-                                print("\nPath to Target: ")
+                                print(right)
+                                print("\nPath: ")
                                 print(moves)
-                                print("\nUsed Steps: ", movelen)
-                                print("Limit: ", bound)
-                                print("Estimate Steps: ", heur([up], puzzle.dim))
-                                print("Estimate Costs: ", estlen)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([up], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
                                 print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
                                 print("Closed nodes: ", len(visited))
                                 #print("Ommited Nodes: ", omitted_nodes)
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s {}ms".format(deltaSecs, delta))    
+                                print("Used Time: {}s".format(deltaSecs))      
                         visited_dict[string] = estlen
                         visited.add(string)
                         frontier.append((moves + '1', up))
@@ -750,6 +759,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                     string = str(down)
                     if string not in visited or visited_dict[string] > estlen:
                         added_nodes += 1
+                        global_added_nodes += 1
                         if added_nodes % 10000 == 0:
                             stop = timer()
                             delta = (stop - start) / 1000
@@ -758,20 +768,21 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             # Set True to enable debugging
                             if True:
                                 print("\nCurrent State: ")
-                                print(down)
-                                print("\nPath to Target: ")
+                                print(right)
+                                print("\nPath: ")
                                 print(moves)
-                                print("\nUsed Steps: ", movelen)
-                                print("Limit: ", bound)
-                                print("Estimate Steps: ", heur([down], puzzle.dim))
-                                print("Estimate Costs: ", estlen)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([down], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
                                 print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
                                 print("Closed nodes: ", len(visited))
                                 #print("Ommited Nodes: ", omitted_nodes)
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s {}ms".format(deltaSecs, delta))    
+                                print("Used Time: {}s".format(deltaSecs))     
                         visited_dict[string] =  estlen
                         visited.add(string)
                         frontier.append((moves + '2', down))
@@ -784,6 +795,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                     string = str(right)
                     if string not in visited or visited_dict[string] > estlen:
                         added_nodes += 1
+                        global_added_nodes += 1
                         if added_nodes % 10000 == 0:
                             stop = timer()
                             delta = (stop - start) / 1000
@@ -793,19 +805,20 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             if True:
                                 print("\nCurrent State: ")
                                 print(right)
-                                print("\nPath to Target: ")
+                                print("\nPath: ")
                                 print(moves)
-                                print("\nUsed Steps: ", movelen)
-                                print("Limit: ", bound)
-                                print("Estimate Steps: ", heur([right], puzzle.dim))
-                                print("Estimate Costs: ", estlen)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([right], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
                                 print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
                                 print("Closed nodes: ", len(visited))
                                 #print("Ommited Nodes: ", omitted_nodes)
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s {}ms".format(deltaSecs, delta))      
+                                print("Used Time: {}s".format(deltaSecs))      
                         visited_dict[string] = estlen
                         visited.add(string)
                         frontier.append((moves + '3', right))
@@ -967,8 +980,8 @@ def main():
                 Search("IDA*", None)]
     curSearch = searches[0]
 
-    testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
-    #testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
+    #testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
+    testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
     #61 steps
     #testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
     print(testpuzzle)
