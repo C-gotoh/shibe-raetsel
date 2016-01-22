@@ -395,17 +395,13 @@ def toString(state):
 def hCostManhattan(path, dim):
     state = path[-1]
     cost = 0
-    xtimesy = dim[0] * dim[1]
-    for y in range(dim[1]):
-        for x in range(dim[0]):
-            expectednumber = y * dim[0] + x + 1
-            if expectednumber == xtimesy:
-                # expectednumber = 0
-                continue
-            actualposition = getStatePosition(state, dim, expectednumber)
-            manhattanDist = abs(x - actualposition[0])\
-                + abs(y - actualposition[1])
-            cost += manhattanDist
+    for row in range(dim[1]):
+        for col in range(dim[0]):
+            num = state[row * dim[0] + col]
+            if num is 0: continue
+            should_row = (num-1) // dim[0]
+            should_col = (num-1) % dim[0]
+            cost = cost + abs(should_row - row) + abs(should_col - col)
     return cost
 
 
@@ -440,17 +436,15 @@ def hCostMhtn1_5x(path, dim):
 def hCostToorac(path, dim):
     state = path[-1]
     cost = 0
-    for y in range(dim[1]):
-        row_start = y*dim[0]
-        for x in range(dim[0]):
-            expectedNumber = x + row_start + 1
-            if expectedNumber == dim[0]*dim[1]:
-                continue
-            if expectedNumber not in state[row_start:row_start+dim[1]]:
+    for row in range(dim[1]):
+        for col in range(dim[0]):
+            num = state[row * dim[0] + col]
+            if num is 0: continue
+            should_row = (num-1) // dim[0]
+            should_col = (num-1) % dim[0]
+            if row != should_row:
                 cost += 1
-            # uses global puzzle
-            # TODO dont
-            if expectedNumber not in puzzle.columnlist[x]:
+            if col != should_col:
                 cost += 1
     return cost
 
@@ -462,15 +456,11 @@ def hCostToorac(path, dim):
 def hCostMpt(path, dim):
     state = path[-1]
     cost = 0
-    for x in range(dim[0]):
-        for y in range(dim[1]):
-            expectedNumber = x + y * dim[0] + 1
-            if expectedNumber == dim[0]*dim[1]:
-                continue
-            actualnumber = state[y * dim[0] + x]
-            if expectedNumber != actualnumber:
-                cost += 1
-    return cost  # + len(path)
+    for i, num in enumerate(state):
+        exp = i + 1
+        if exp !=  num and exp != 16:
+            cost += 1
+    return cost
 
 
 # highly used function!
