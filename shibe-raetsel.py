@@ -974,6 +974,8 @@ def main():
     #testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
     #61 steps
     testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
+    #devils puzzle 72 steps
+    testpuzzle = [1,5,9,13,2,6,10,14,3,7,11,15,4,8,12,0]
     print(testpuzzle)
 
     keys = {
