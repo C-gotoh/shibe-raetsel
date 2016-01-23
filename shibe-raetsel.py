@@ -644,6 +644,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
     startTime = timer()
     start = timer()
     stop = timer()
+    neighbors = PriorityQueue()
     while frontier:
         #print(frontier)
         path = frontier.pop()
@@ -665,12 +666,15 @@ def idaIteration(path, lenpath, bound, endPos, heur):
 
             estlen = 0
             string = ""
+
             if left is not None and moves[-1] != '3':
                 estlen = movelen + heur([left], puzzle.dim)
                 if estlen <= bound:
-                    #continue
                     string = str(left)
                     if string not in visited or visited_dict[string] > estlen:
+                        neighbors.put((-estlen,(left,'0')))
+                        visited_dict[string] = estlen
+                        visited.add(string)
                         added_nodes += 1
                         global_added_nodes += 1
                         if added_nodes % 10000 == 0:
@@ -681,7 +685,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             # Set True to enable debugging
                             if True:
                                 print("\nCurrent State: ")
-                                print(right)
+                                print(left)
                                 print("\nPath: ")
                                 print(moves)
                                 print("\nLength Path: ", movelen)
@@ -695,23 +699,16 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s".format(deltaSecs))      
-                        #if string in visited:
-                        #    if visited_dict[string] > estlen:
-                        #        print("update")
-                        visited_dict[string] = estlen
-                        #print("ol", visited_dict[string])
-                        #print(visited_dict)
-                        visited.add(string)
-                        frontier.append((moves + '0', left))
+                                print("Used Time: {}s".format(deltaSecs))
 
             if up is not None and moves[-1] != '2':
                 estlen = movelen + heur([up], puzzle.dim)
                 if estlen <= bound:
-                    #print("fuckup")
-                    #continue
                     string = str(up)
                     if string not in visited or visited_dict[string] > estlen:
+                        neighbors.put((-estlen,(up,'1')))
+                        visited_dict[string] = estlen
+                        visited.add(string)
                         added_nodes += 1
                         global_added_nodes += 1
                         if added_nodes % 10000 == 0:
@@ -722,7 +719,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             # Set True to enable debugging
                             if True:
                                 print("\nCurrent State: ")
-                                print(right)
+                                print(up)
                                 print("\nPath: ")
                                 print(moves)
                                 print("\nLength Path: ", movelen)
@@ -736,18 +733,16 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s".format(deltaSecs))      
-                        visited_dict[string] = estlen
-                        visited.add(string)
-                        frontier.append((moves + '1', up))
+                                print("Used Time: {}s".format(deltaSecs))
 
             if down is not None and moves[-1] != '1':
                 estlen = movelen + heur([down], puzzle.dim)
                 if estlen <= bound:
-                    #print("fuckdown")
-                    #continue
                     string = str(down)
                     if string not in visited or visited_dict[string] > estlen:
+                        neighbors.put((-estlen,(down,'2')))
+                        visited_dict[string] = estlen
+                        visited.add(string)
                         added_nodes += 1
                         global_added_nodes += 1
                         if added_nodes % 10000 == 0:
@@ -758,7 +753,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             # Set True to enable debugging
                             if True:
                                 print("\nCurrent State: ")
-                                print(right)
+                                print(down)
                                 print("\nPath: ")
                                 print(moves)
                                 print("\nLength Path: ", movelen)
@@ -772,18 +767,16 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s".format(deltaSecs))     
-                        visited_dict[string] =  estlen
-                        visited.add(string)
-                        frontier.append((moves + '2', down))
+                                print("Used Time: {}s".format(deltaSecs))
 
             if right is not None and moves[-1] != '0':
                 estlen = movelen + heur([right], puzzle.dim)
                 if estlen <= bound:
-                    #print("fuckright")
-                    #continue
                     string = str(right)
                     if string not in visited or visited_dict[string] > estlen:
+                        neighbors.put((-estlen,(right,'3')))
+                        visited_dict[string] = estlen
+                        visited.add(string)
                         added_nodes += 1
                         global_added_nodes += 1
                         if added_nodes % 10000 == 0:
@@ -808,10 +801,11 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                                 print("Stack Length: ", len(frontier))
                                 #print("Overall computed Heuristics: ", heuristic_calls)
                                 print('')
-                                print("Used Time: {}s".format(deltaSecs))      
-                        visited_dict[string] = estlen
-                        visited.add(string)
-                        frontier.append((moves + '3', right))
+                                print("Used Time: {}s".format(deltaSecs))  
+            #print(neighbors.queue)
+            for i in range(neighbors.qsize()):
+                n = neighbors.get()[1]
+                frontier.append((moves + n[1], n[0]))
 
             
             # frontier elements: (moves, state)
@@ -970,12 +964,12 @@ def main():
                 Search("IDA*", None)]
     curSearch = searches[0]
 
-    #testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
+    testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
     #testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
     #61 steps
-    testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
+    #testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
     #devils puzzle 72 steps
-    testpuzzle = [1,5,9,13,2,6,10,14,3,7,11,15,4,8,12,0]
+    #testpuzzle = [1,5,9,13,2,6,10,14,3,7,11,15,4,8,12,0]
     print(testpuzzle)
 
     keys = {
