@@ -175,20 +175,27 @@ class Puzzle(object):
     # ...
     def randomize(self, _bound=0, _heuristic=None):
         iter_max = 10000
-        while iter_max > 0:
+        if _bound <= 0:
+            iter_max = 1
+
+        min_heur = 2147483647
+        min_board = None
+
+        for i in range(iter_max):
             board = self.boardcopy()
-            random.shuffle(board)
+            self.solvable = False
+            while not self.solvable:
+                random.shuffle(board)
+                self.update(board)
 
-            self.update(board)
+            heur = _heuristic.run(self.state(), self.dim)
+            if heur < min_heur:
+                min_heur = heur
+                min_board = board
+                if heur < _bound:
+                    break
 
-            if self.solvable:
-                if _bound != 0 and\
-                   _heuristic.run(self.state(), self.dim) > _bound:
-                    iter_max -= 1
-                    continue
-                break
-
-        self.update(board)
+        self.update(min_board)
 
     def checksolved(self):
         self.solved = self.board == self.initcopy()
@@ -987,7 +994,7 @@ def main():
         key.ENTER: ('↲',  "reset puzzle", lambda: puzzle.reset()),
         key.E:     ('e',  "change heuristic", lambda: toggleHeuristic()),
         key.H:     ('h',  "show/hide hint", lambda: toggleHint()),
-        key.R:     ('r',  "random puzzle", lambda: puzzle.randomize()),
+        key.R:     ('r',  "random puzzle", lambda: puzzle.randomize(0, curHeur)),
         key.T:     (None, "(random) puzzle", lambda: puzzle.randomize(20, curHeur)),
         key.LEFT:  (None, "move left", lambda: puzzle.move(0)),
         key.UP:    (None, "move up", lambda: puzzle.move(1)),
