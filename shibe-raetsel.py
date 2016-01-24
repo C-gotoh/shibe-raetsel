@@ -406,7 +406,12 @@ def hCostManhattan(path, dim):
             if num is 0: continue
             should_row = (num-1) // dim[0]
             should_col = (num-1) % dim[0]
-            cost = cost + abs(should_row - row) + abs(should_col - col)
+
+            if should_row > row: cost += should_row - row
+            else: cost += row - should_row
+
+            if should_col > col: cost += should_col - col
+            else: cost += col - should_col
     return cost
 
 
