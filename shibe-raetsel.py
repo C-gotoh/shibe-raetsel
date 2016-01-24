@@ -9,6 +9,7 @@ from pyglet.window import key
 from queue import Queue, PriorityQueue  # ,LifoQueue
 import random
 from timeit import default_timer as timer
+import numpy as np
 
 import cProfile
 
@@ -346,6 +347,67 @@ class Heuristic(object):
 
     def run(self, state, dim):
         return self.function(state, dim)
+
+# ######################## heuristic functions
+
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+#
+def hCostInvertDistance(path, dim):
+    length = dim[0]*dim[1]
+    state = path[-1]
+    # Use of numpy to reformat state as columns
+    #array = np.asarray(state)
+    #matrix = array.reshape(dim[1],dim[0])
+    #matrixT = matrix.transpose()
+    #matrixL = matrixT.reshape(length)
+    #cols = np.reshape(np.transpose(np.reshape(np.asarray(state),dim[1],dim[0])),length)
+    #print(cols)
+    #print(matrix)
+    #print(matrixT)
+    #print(matrixL)
+    vertical = 0
+    horizontal = 0
+    inversions = 0
+    length = dim[0]*dim[1]
+    # calc number of vertical moves
+    for i in range(length):
+        ival = state[i]
+        if ival == 0: continue
+        for other in range(length):
+            otherval = state[other]
+            if otherval == 0: continue
+            if (i < other) and (otherval < ival):
+                #print(i,other,ival,otherval)
+                inversions += 1
+    vertical = inversions // 3 + inversions % 3
+    inversions = 0
+    # calc number of horizontal moves
+    for x in range(dim[0]):
+        for y in range(dim[1]):
+            xy = x*dim[1]+y
+            i = y*dim[0]+x
+            ival = state[i]
+            #print(xy, ival)
+            #print("---")
+            if ival == 0: continue
+            for xo in range(dim[0]):
+                for yo in range(dim[1]):
+                    xoyo = xo*dim[1]+yo
+                    o = yo*dim[0]+xo
+                    otherval = state[o]
+                    #print(xoyo, otherval)
+                    if otherval == 0: continue
+                    if (xy < xoyo) and (otherval < ival):
+                    #if (xy < xoyo) and (otherval < ival):
+                        #print("inv")
+                        inversions += 1
+    horizontal = inversions // 3 + inversions % 3
+
+    #return inversions
+    return vertical + horizontal
+
 
 
 # ######################## heuristic functions
@@ -925,7 +987,7 @@ def on_draw():
 
             number = pyglet.text.Label(tile, font_size=size,
                 x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
-                y=offsety+(y+1)*(maxdimension/(puzzle.dim[1]+1)),
+                y=window.height-offsety-(y+1)*(maxdimension/(puzzle.dim[1]+1)),
                 anchor_x='center', anchor_y='center')
             number.draw()
 
@@ -1026,7 +1088,8 @@ def main():
                   Heuristic("Linear conflicts", hCostLinearConflict),
                   Heuristic("Manhattan * 1.5", hCostMhtn1_5x),
                   Heuristic("Manhattan * 2", hCostMhtn2x),
-                  Heuristic("Manhattan * 3", hCostMhtn3x)]
+                  Heuristic("Manhattan * 3", hCostMhtn3x),
+                  Heuristic("Invert Distance", hCostInvertDistance)]
     curHeur = heuristics[0]
 
     searches = [Search("BFS", Queue),
@@ -1053,10 +1116,10 @@ def main():
         key.H:     ('h',  "show/hide hint", lambda: toggleHint()),
         key.R:     ('r',  "random puzzle", lambda: puzzle.randomize(0, curHeur)),
         key.T:     (None, "(random) puzzle", lambda: puzzle.randomize(20, curHeur)),
-        key.LEFT:  (None, "move left", lambda: puzzle.move(0)),
+        key.LEFT:  (None, "move left", lambda: puzzle.move(3)),
         key.UP:    (None, "move up", lambda: puzzle.move(1)),
         key.DOWN:  (None, "move down", lambda: puzzle.move(2)),
-        key.RIGHT: (None, "move right", lambda: puzzle.move(3)),
+        key.RIGHT: (None, "move right", lambda: puzzle.move(0)),
         key.Y:     (None, "change directions", lambda: puzzle.twistmoves()),
         key.P:     (None, "print current solution", lambda: puzzle.debugsolution()),
         key.X:     (None, "toggle Debug", lambda: toggleDebug()),
