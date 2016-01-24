@@ -477,7 +477,7 @@ def hCostMpt(path, dim):
 # for a element give coords (in state)
 def getStatePosition(state, dim, element):
     index = state.index(element)
-    return index % dim[0], index // dim[0]
+    return divmod(index, dim[0])
 
 
 # highly used function!
@@ -612,7 +612,7 @@ def idaSearch(startPos, endPos, heurf,
     
     # for increasing bound by 2 you need to find the right start bound
     # that is 1 the MD of the blank tile to its final position is odd, 0 else
-    x, y = getStatePosition(startPos,puzzle.dim,0)
+    y, x = getStatePosition(startPos,puzzle.dim,0)
     dist = abs(x-puzzle.dim[0]) + abs(y-puzzle.dim[1])
     bound = (dist%2)
     if True:
