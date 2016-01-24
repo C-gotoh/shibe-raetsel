@@ -933,7 +933,7 @@ def on_draw():
 
             number = pyglet.text.Label(tile, font_size=size,
                 x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
-                y=offsety+(y+1)*(maxdimension/(puzzle.dim[1]+1)),
+                y=window.height-offsety-(y+1)*(maxdimension/(puzzle.dim[1]+1)),
                 anchor_x='center', anchor_y='center')
             number.draw()
 
@@ -1061,10 +1061,10 @@ def main():
         key.H:     ('h',  "show/hide hint", lambda: toggleHint()),
         key.R:     ('r',  "random puzzle", lambda: puzzle.randomize(0, curHeur)),
         key.T:     (None, "(random) puzzle", lambda: puzzle.randomize(20, curHeur)),
-        key.LEFT:  (None, "move left", lambda: puzzle.move(0)),
+        key.LEFT:  (None, "move left", lambda: puzzle.move(3)),
         key.UP:    (None, "move up", lambda: puzzle.move(1)),
         key.DOWN:  (None, "move down", lambda: puzzle.move(2)),
-        key.RIGHT: (None, "move right", lambda: puzzle.move(3)),
+        key.RIGHT: (None, "move right", lambda: puzzle.move(0)),
         key.Y:     (None, "change directions", lambda: puzzle.twistmoves()),
         key.P:     (None, "print current solution", lambda: puzzle.debugsolution()),
         key.X:     (None, "toggle Debug", lambda: toggleDebug()),
