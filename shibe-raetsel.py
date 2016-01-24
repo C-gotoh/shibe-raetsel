@@ -354,7 +354,7 @@ class Heuristic(object):
 #
 # for a given path, calc the heuristic costs
 #
-def hCostLinearConflict(path, dim):
+def hCostLinearConflict(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
 
@@ -397,7 +397,7 @@ def toString(state):
 #
 # for a given path, calc the heuristic costs
 #
-def hCostManhattan(path, dim):
+def hCostManhattan(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
     for row in range(dim[1]):
@@ -414,11 +414,68 @@ def hCostManhattan(path, dim):
     return cost
 
 
+def hCostManhattan2(path, dim, _oldheur=0):
+    if _oldheur == 0 or len(path[0]) == 0:
+        return hCostManhattan(path, dim)
+    state = path[-1]
+    lastmove = int(path[0][-1])
+    izero = state.index(0)
+    zero_is_row, zero_is_col = divmod(izero, dim[0])
+    if lastmove == 0:  # left
+        iswap = izero + 1
+
+        swap_is_row = zero_is_row 
+        swap_is_col = zero_is_col + 1
+
+        swap_was_row = zero_is_row
+        swap_was_col = zero_is_col
+
+    elif lastmove == 1:  # up
+        iswap = izero - dim[0]
+
+        swap_is_row = zero_is_row - 1
+        swap_is_col = zero_is_col
+
+        swap_was_row = zero_is_row
+        swap_was_col = zero_is_col
+
+    elif lastmove == 2:  # down
+        iswap = izero + dim[0]
+
+        swap_is_row = zero_is_row + 1
+        swap_is_col = zero_is_col
+
+        swap_was_row = zero_is_row
+        swap_was_col = zero_is_col
+
+    elif lastmove == 3:  # right
+        iswap = izero - 1
+
+        swap_is_row = zero_is_row 
+        swap_is_col = zero_is_col - 1
+
+        swap_was_row = zero_is_row
+        swap_was_col = zero_is_col
+
+    swap = state[iswap]
+
+    swap_should_row, swap_should_col = divmod(swap-1, dim[0])
+
+    swap_was_impact = abs(swap_should_row - swap_was_row) + abs(swap_should_col - swap_was_col)
+    swap_is_impact = abs(swap_should_row - swap_is_row) + abs(swap_should_col - swap_is_col)
+
+    cost = _oldheur - swap_was_impact + swap_is_impact
+    print(path)
+    print("calc", cost, "oldMhtn", hCostManhattan(path, dim))
+
+    return cost
+
+
 # highly used function!
 #
 # for a given path, calc the heuristic costs
 # Just for fun, calc manhattan times 3
-def hCostMhtn3x(path, dim):
+def hCostMhtn3x(path, dim, _oldheur=0):
     return hCostManhattan(path, dim) * 3
 
 
@@ -426,7 +483,7 @@ def hCostMhtn3x(path, dim):
 #
 # for a given path, calc the heuristic costs
 # Just for fun, calc manhattan times 3
-def hCostMhtn2x(path, dim):
+def hCostMhtn2x(path, dim, _oldheur=0):
     return hCostManhattan(path, dim) * 2
 
 
@@ -434,7 +491,7 @@ def hCostMhtn2x(path, dim):
 #
 # for a given path, calc the heuristic costs
 # Just for fun, calc manhattan times 3
-def hCostMhtn1_5x(path, dim):
+def hCostMhtn1_5x(path, dim, _oldheur=0):
     return int(hCostManhattan(path, dim) * 1.5)
 
 
@@ -442,7 +499,7 @@ def hCostMhtn1_5x(path, dim):
 #
 # for a given path, calc the heuristic costs
 # heuristic function: Toorac = tiles out of row and column
-def hCostToorac(path, dim):
+def hCostToorac(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
     for row in range(dim[1]):
@@ -462,7 +519,7 @@ def hCostToorac(path, dim):
 #
 # for a given path, calc the heuristic costs
 # heuristic funktion: Mpt = Misplaced Tiles
-def hCostMpt(path, dim):
+def hCostMpt(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
     for i, num in enumerate(state):
@@ -541,7 +598,7 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
     global heuristic_calls
     heuristic_calls = 0
 
-    item = (_heurf(('', start_pos), puzzle.dim), 1, (' ', start_pos))
+    item = (_heurf(('', 0, start_pos), puzzle.dim), 1, (' ', start_pos))
     frontier.put(item)
 
     while not frontier.empty():
@@ -551,7 +608,8 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
         hcosts, plength, path = frontier.get()
         plength += 1
 
-        head = path[1]
+        head = path[-1]
+        oldhcost = hcosts - plength
 
         if str(head) in visited:
             # omitted += 1
@@ -574,25 +632,25 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 
             if left is not None and path[0][-1] != '3' and str(left) not in visited:
                 new_path = (path[0] + '0', left)
-                frontier.put((_heurf(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
                              plength,
                              new_path))
 
             if up is not None and path[0][-1] != '2' and str(up) not in visited:
                 new_path = (path[0] + '1', up)
-                frontier.put((_heurf(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
                              plength,
                              new_path))
 
             if down is not None and path[0][-1] != '1' and str(down) not in visited:
                 new_path = (path[0] + '2', down)
-                frontier.put((_heurf(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
                              plength,
                              new_path))
 
             if right is not None and path[0][-1] != '0' and str(right) not in visited:
                 new_path = (path[0] + '3', right)
-                frontier.put((_heurf(new_path, puzzle.dim) + plength,
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
                              plength,
                              new_path))
 
@@ -822,10 +880,6 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                         visited.add(string)
                         frontier.append((moves + '3', right))
 
-            
-            # frontier elements: (moves, state)
-
-
     print("Visited: " + str(len(visited)))
     return None
 
@@ -966,6 +1020,7 @@ def main():
         print("Unable to parse given data")
 
     heuristics = [Heuristic("Manhattan distance", hCostManhattan),
+                  Heuristic("Manhattan distance New", hCostManhattan2),
                   Heuristic("Misplaced tiles", hCostMpt),
                   Heuristic("Tiles out of row & column", hCostToorac),
                   Heuristic("Linear conflicts", hCostLinearConflict),
