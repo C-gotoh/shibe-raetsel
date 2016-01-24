@@ -419,35 +419,33 @@ def hCostInvertDistance(path, dim):
 def hCostLinearConflict(path, dim):
     state = path[-1]
     cost = 0
-    xtimesy = dim[0] * dim[1]
-    for y in range(dim[1]):
-        maxValue = 0
-        for x in range(dim[0]):
-            expectednumber = y * dim[0] + x + 1
-            if expectednumber == xtimesy:  # expectednumber = 0
-                continue
-            # for rows
-            value = state[y*dim[0]+x]
-            if value in puzzle.rowlist[y] and value != 0:
-                if value >= maxValue:
-                    maxValue = value
-                else:
+
+    for row in range(dim[1]):
+        rowtimesdimzero = row * dim[0]
+        for col in range(dim[0]):
+            index = rowtimesdimzero + col
+            num = state[index]
+            if num == 0: continue
+            should_row, should_col = divmod(num - 1, dim[0])
+            if should_col == col:  # col num should
+                for i in range(row):
+                    pre = state[index - (i+1) * dim[0]]
+                    if pre < num: continue # pre != 0 is checked implicitly
+                    if (pre-1) % dim[0] != col: continue  # col pre should
                     cost += 2
 
-            actualposition = getStatePosition(state, dim, expectednumber)
-            manhattanDist = abs(x - actualposition[0])\
-                + abs(y - actualposition[1])
-            cost += manhattanDist
-
-        # for cols
-        maxValue = 0
-        for i in range(dim[1]):
-            value = state[i*dim[0]+y]
-            if value in puzzle.columnlist[y] and value != 0:
-                if value >= maxValue:
-                    maxValue = value
-                else:
+            if should_row == row:  #row num should
+                for x in range(rowtimesdimzero, index):
+                    pre = state[x]
+                    if pre < num: continue # pre != 0 is checked implicitly
+                    if (pre-1) // dim[0] != row: continue  # row pre should
                     cost += 2
+
+            if should_row > row: cost += should_row - row
+            else: cost += row - should_row
+
+            if should_col > col: cost += should_col - col
+            else: cost += col - should_col
     return cost
 
 def toString(state):
@@ -468,9 +466,13 @@ def hCostManhattan(path, dim):
         for col in range(dim[0]):
             num = state[row * dim[0] + col]
             if num is 0: continue
-            should_row = (num-1) // dim[0]
-            should_col = (num-1) % dim[0]
-            cost = cost + abs(should_row - row) + abs(should_col - col)
+            should_row, should_col = divmod(num-1, dim[0])
+
+            if should_row > row: cost += should_row - row
+            else: cost += row - should_row
+
+            if should_col > col: cost += should_col - col
+            else: cost += col - should_col
     return cost
 
 
@@ -537,7 +539,7 @@ def hCostMpt(path, dim):
 # for a element give coords (in state)
 def getStatePosition(state, dim, element):
     index = state.index(element)
-    return index % dim[0], index // dim[0]
+    return divmod(index, dim[0])
 
 
 # highly used function!
@@ -672,7 +674,7 @@ def idaSearch(startPos, endPos, heurf,
     
     # for increasing bound by 2 you need to find the right start bound
     # that is 1 the MD of the blank tile to its final position is odd, 0 else
-    x, y = getStatePosition(startPos,puzzle.dim,0)
+    y, x = getStatePosition(startPos,puzzle.dim,0)
     dist = abs(x-puzzle.dim[0]) + abs(y-puzzle.dim[1])
     bound = (dist%2)
     if True:
