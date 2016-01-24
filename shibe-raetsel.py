@@ -461,63 +461,44 @@ def toString(state):
 #
 def hCostManhattan(path, dim, _oldheur=0):
     state = path[-1]
-    cost = 0
-    for row in range(dim[1]):
-        for col in range(dim[0]):
-            num = state[row * dim[0] + col]
-            if num is 0: continue
-            should_row, should_col = divmod(num-1, dim[0])
-
-            if should_row > row: cost += should_row - row
-            else: cost += row - should_row
-
-            if should_col > col: cost += should_col - col
-            else: cost += col - should_col
-    return cost
-
-
-def hCostManhattan2(path, dim, _oldheur=0):
     if _oldheur == 0 or len(path[0]) == 0:
-        return hCostManhattan(path, dim)
+        cost = 0
+        for row in range(dim[1]):
+            for col in range(dim[0]):
+                num = state[row * dim[0] + col]
+                if num is 0: continue
+                should_row, should_col = divmod(num-1, dim[0])
+
+                if should_row > row: cost += should_row - row
+                else: cost += row - should_row
+
+                if should_col > col: cost += should_col - col
+                else: cost += col - should_col
+        return cost
+
     state = path[-1]
     lastmove = int(path[0][-1])
     izero = state.index(0)
-    zero_is_row, zero_is_col = divmod(izero, dim[0])
+
+    swap_was_row, swap_was_col = divmod(izero, dim[0])  # equals zero_is_row, zero_is_col
+    swap_is_row = swap_was_row
+    swap_is_col = swap_was_col
+
     if lastmove == 0:  # left
         iswap = izero + 1
-
-        swap_is_row = zero_is_row 
-        swap_is_col = zero_is_col + 1
-
-        swap_was_row = zero_is_row
-        swap_was_col = zero_is_col
+        swap_is_col += 1
 
     elif lastmove == 1:  # up
         iswap = izero - dim[0]
-
-        swap_is_row = zero_is_row - 1
-        swap_is_col = zero_is_col
-
-        swap_was_row = zero_is_row
-        swap_was_col = zero_is_col
+        swap_is_row -= 1
 
     elif lastmove == 2:  # down
         iswap = izero + dim[0]
-
-        swap_is_row = zero_is_row + 1
-        swap_is_col = zero_is_col
-
-        swap_was_row = zero_is_row
-        swap_was_col = zero_is_col
+        swap_is_row += 1
 
     elif lastmove == 3:  # right
         iswap = izero - 1
-
-        swap_is_row = zero_is_row 
-        swap_is_col = zero_is_col - 1
-
-        swap_was_row = zero_is_row
-        swap_was_col = zero_is_col
+        swap_is_col -= 1
 
     swap = state[iswap]
 
@@ -527,9 +508,6 @@ def hCostManhattan2(path, dim, _oldheur=0):
     swap_is_impact = abs(swap_should_row - swap_is_row) + abs(swap_should_col - swap_is_col)
 
     cost = _oldheur - swap_was_impact + swap_is_impact
-    print(path)
-    print("calc", cost, "oldMhtn", hCostManhattan(path, dim))
-
     return cost
 
 
@@ -668,10 +646,10 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 
         # hcosts, plength, path = heappop(heap)
         hcosts, plength, path = frontier.get()
+        oldhcost = hcosts - plength
         plength += 1
 
         head = path[-1]
-        oldhcost = hcosts - plength
 
         if str(head) in visited:
             # omitted += 1
@@ -1082,7 +1060,6 @@ def main():
         print("Unable to parse given data")
 
     heuristics = [Heuristic("Manhattan distance", hCostManhattan),
-                  Heuristic("Manhattan distance New", hCostManhattan2),
                   Heuristic("Misplaced tiles", hCostMpt),
                   Heuristic("Tiles out of row & column", hCostToorac),
                   Heuristic("Linear conflicts", hCostLinearConflict),
@@ -1132,7 +1109,6 @@ def main():
         key.C:     (None, "deprecated", lambda: puzzle.debugheuristic())}
 
     pyglet.app.run()
-
 
 if __name__ == '__main__':
     main()
