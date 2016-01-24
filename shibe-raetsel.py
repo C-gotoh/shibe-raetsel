@@ -404,8 +404,7 @@ def hCostManhattan(path, dim):
         for col in range(dim[0]):
             num = state[row * dim[0] + col]
             if num is 0: continue
-            should_row = (num-1) // dim[0]
-            should_col = (num-1) % dim[0]
+            should_row, should_col = divmod(num-1, dim[0])
 
             if should_row > row: cost += should_row - row
             else: cost += row - should_row
