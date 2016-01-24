@@ -534,6 +534,13 @@ def hCostMhtn2x(path, dim, _oldheur=0):
 def hCostMhtn1_5x(path, dim, _oldheur=0):
     return int(hCostManhattan(path, dim) * 1.5)
 
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
+def hCostMhtn1_1x(path, dim, _oldheur=0):
+    return int(hCostManhattan(path, dim) * 1.1)
+
 
 # highly used function!
 #
@@ -1063,6 +1070,7 @@ def main():
                   Heuristic("Misplaced tiles", hCostMpt),
                   Heuristic("Tiles out of row & column", hCostToorac),
                   Heuristic("Linear conflicts", hCostLinearConflict),
+                  Heuristic("Manhatten * 1.1", hCostMhtn1_1x),
                   Heuristic("Manhattan * 1.5", hCostMhtn1_5x),
                   Heuristic("Manhattan * 2", hCostMhtn2x),
                   Heuristic("Manhattan * 3", hCostMhtn3x),
