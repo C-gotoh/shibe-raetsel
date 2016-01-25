@@ -308,11 +308,11 @@ class Search(object):
 
         ref = [None]  # cProfile: need to pass a mutable object
         if frontier is None:      # this is an ID search
-            cProfile.runctx('ref[0] = idaSearch(State(start, '', dim), goal, heurf, True)',
+            cProfile.runctx('ref[0] = idaSearch(State(start, "", dim), goal, heurf, True)',
                             globals(), locals())
             solution = ref[0]
         else:              # this is a normal search
-            cProfile.runctx('ref[0] = genericSearch(State(start, '', dim), goal, heurf, frontier, True)', globals(), locals())
+            cProfile.runctx('ref[0] = genericSearch(State(start, "", dim), goal, heurf, frontier, True)', globals(), locals())
             solution = ref[0]
 
         print("\n" + self.name + " is complete." +
@@ -330,6 +330,8 @@ class Heuristic(object):
         return self.function(state, dim)
 
 class State(object):
+    __slots__ = ('field','fhash','path','plength','tuple','dim','zeroindex','zeroxy','lastmove')
+
     def __init__(self, field, path, dim):
         self.field = field
         self.fhash = str(self.field)
@@ -340,8 +342,8 @@ class State(object):
         self.tuple = (self.path, self.field)
 
         self.dim = dim
-        self.zeroindex = self.field.index(0)
-        self.zeroxy = divmod(self.zeroindex, self.dim[0])
+        self.zeroindex = None
+        self.zeroxy = None
 
         if self.plength > 0:
             self.lastmove = int(path[-1])
@@ -350,8 +352,18 @@ class State(object):
 
         return None
 
+    def zeroindexf(self):
+        if self.zeroindex is None:
+            self.zeroindex = self.field.index(0)
+        return self.zeroindex
+
+    def zeroxyf(self):
+        if self.zeroxy is None:
+            self.zeroxy = divmod(self.zeroindexf(), self.dim[0])
+        return self.zeroxy
+
     def getNeighborStates(self):
-        izero_fdiv, izero_mod = self.zeroxy
+        izero_fdiv, izero_mod = self.zeroxyf()
 
         # left:
         iswap = self.zeroindex - 1
@@ -703,7 +715,7 @@ def idaSearch(start, goal, heurf,
     
     # for increasing bound by 2 you need to find the right start bound
     # that is 1 the MD of the blank tile to its final position is odd, 0 else
-    x, y = start.zeroxy
+    x, y = start.zeroxyf()
     dist = abs(x-start.dim[0]) + abs(y-start.dim[1])
     bound = (dist%2)
     if True:
@@ -766,7 +778,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             print("\nCurrent State: ")
                             print(state.field)
                             print("\nPath: ")
-                            print(moves)
+                            print(state.path)
                             print("\nLength Path: ", state.plength)
                             print("Bound: ", bound)
                             print("Heuristic: ", left.estimate(heur))
@@ -804,7 +816,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             print("\nCurrent State: ")
                             print(state.field)
                             print("\nPath: ")
-                            print(moves)
+                            print(state.path)
                             print("\nLength Path: ", state.plength)
                             print("Bound: ", bound)
                             print("Heuristic: ", up.estimate(heur))
@@ -842,7 +854,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             print("\nCurrent State: ")
                             print(state.field)
                             print("\nPath: ")
-                            print(moves)
+                            print(state.path)
                             print("\nLength Path: ", state.plength)
                             print("Bound: ", bound)
                             print("Heuristic: ", down.estimate(heur))
@@ -880,7 +892,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             print("\nCurrent State: ")
                             print(state.field)
                             print("\nPath: ")
-                            print(moves)
+                            print(state.path)
                             print("\nLength Path: ", state.plength)
                             print("Bound: ", bound)
                             print("Heuristic: ", right.estimate(heur))
