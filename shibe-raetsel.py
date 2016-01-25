@@ -140,7 +140,9 @@ class Puzzle(object):
             move = self.solution[0]
             rest = self.solution[1:]
             # TODO try-catch to filter out illegal moves
-            self.update(State(self.board, '', self.dim).getNeighborStates()[int(move)].field, _sol=rest)
+            self.update(getNeighborStates(
+                                self.board,
+                                self.dim)[int(move)], _sol=rest)
 
         if self.solution == '':
             if not self.solved:
@@ -228,8 +230,7 @@ class Puzzle(object):
 
     # swap the empty tile with left neighbor
     def move(self, direction):
-        state = State(self.board, '', self.dim)
-        neighbors = list(state.getNeighborStates())
+        neighbors = list(getNeighborStates(self.board, self.dim))
 
         if self.twisted:
             direction = [0, 1, 2, 3][::-1][direction]
@@ -242,9 +243,9 @@ class Puzzle(object):
             return None
 
         if self.solution != '' and str(direction) == self.solution[0]:
-            self.update(new.field, _paritycheck=False, _sol=self.solution[1:])
+            self.update(new, _paritycheck=False, _sol=self.solution[1:])
         else:
-            self.update(new.field, _paritycheck=False)
+            self.update(new, _paritycheck=False)
             # The user moved in other dir than hint
 
         return None
@@ -264,6 +265,7 @@ class Search(object):
     def __init__(self, name, _frontier=None):
         self.name = name
         self.frontier = _frontier  # ida is None,
+
         return None
 
     def run(self, start, goal, dim, _heuristic=None, _debug=False,
@@ -288,132 +290,67 @@ class Search(object):
             tstart = timer()
 
             if frontier is None:  # this is an ID search
-                solution = idaSearch(State(start, '', dim), goal, heurf, False)
+                solution = idaSearch(start, goal, heurf, False)
+                solution = self.pathConv(solution, dim)
             else:                  # this is a normal search
-                solution = genericSearch(State(start, '', dim), goal, heurf, frontier, False)
+                solution = genericSearch(start, goal, heurf, frontier, False)
 
             tend = timer()
             elapsed_time = tend - tstart
 
             print("\n" + self.name + " is complete." +
                   "\n    It took " + str(elapsed_time) + "s." +
-                  "\n    Solution has " + str(solution.plength) + " steps.")
+                  "\n    Solution has " + str(len(solution[0])) + " steps.")
 
-        return (solution.path, start)
+        return solution
 
     def runProfile(self, start, goal, dim, heuristic):
         heurf = heuristic.function
         frontier = self.frontier
-        solution = None
+        solution = ('', [])
 
         ref = [None]  # cProfile: need to pass a mutable object
         if frontier is None:      # this is an ID search
-            cProfile.runctx('ref[0] = idaSearch(State(start, "", dim), goal, heurf, True)',
+            cProfile.runctx('ref[0] = idaSearch(start, goal, heurf, True)',
                             globals(), locals())
-            solution = ref[0]
+            solution = self.pathConv(ref[0], dim)
         else:              # this is a normal search
-            cProfile.runctx('ref[0] = genericSearch(State(start, "", dim), goal, heurf, frontier, True)', globals(), locals())
+            cProfile.runctx('ref[0] = genericSearch(start, goal, heurf,' +
+                            'frontier, True)', globals(), locals())
             solution = ref[0]
 
         print("\n" + self.name + " is complete." +
-              "\n    Solution has " + str(solution.plength) + " steps.")
+              "\n    Solution has " + str(len(solution[0])) + " steps.")
 
         return solution
+
+    # converts a given path in ida format
+    # to a string of moves plus start
+    def pathConv(self, path, dim):
+        #genpath = ""
+        #idapath = path[:]
+        #start = idapath[0]
+
+        #while len(idapath) > 1:
+        #    possible = getNeighborStates(idapath.pop(0), dim)
+        #    current = idapath[0]
+        #    for i in range(4):
+        #        if current == possible[i]:
+        #            genpath = genpath + str(i)
+
+        #return genpath, start
+        return path[0], path[-1]
+
 
 class Heuristic(object):
     def __init__(self, name, function):
         self.name = name
         self.function = function
+
         return None
 
     def run(self, state, dim):
         return self.function(state, dim)
-
-class State(object):
-    __slots__ = ('field','fhash','path','plength','tuple','dim','zeroindex','zeroxy','lastmove')
-
-    def __init__(self, field, path, dim):
-        self.field = field
-        self.fhash = str(self.field)
-
-        self.path = path
-        self.plength = len(self.path)
-
-        self.tuple = (self.path, self.field)
-
-        self.dim = dim
-        self.zeroindex = None
-        self.zeroxy = None
-
-        if self.plength > 0:
-            self.lastmove = int(path[-1])
-        else:
-            self.lastmove = None
-
-        return None
-
-    def zeroindexf(self):
-        if self.zeroindex is None:
-            self.zeroindex = self.field.index(0)
-        return self.zeroindex
-
-    def zeroxyf(self):
-        if self.zeroxy is None:
-            self.zeroxy = divmod(self.zeroindexf(), self.dim[0])
-        return self.zeroxy
-
-    def getNeighborStates(self):
-        izero_fdiv, izero_mod = self.zeroxyf()
-
-        # left:
-        iswap = self.zeroindex - 1
-        if izero_fdiv == iswap // self.dim[0]:
-            left = self.field[:]
-            left[self.zeroindex] = left[iswap]
-            left[iswap] = 0
-            left = State(left, self.path + '0', self.dim)
-        else:
-            left = None
-
-        # up:
-        iswap = self.zeroindex + self.dim[0]
-        if izero_mod == iswap % self.dim[0] and iswap < len(self.field):
-            up = self.field[:]
-            up[self.zeroindex] = up[iswap]
-            up[iswap] = 0
-            up = State(up, self.path + '1', self.dim)
-        else:
-            up = None
-
-        # down:
-        iswap = self.zeroindex - self.dim[0]
-        if izero_mod == iswap % self.dim[0] and iswap >= 0:
-            down = self.field[:]
-            down[self.zeroindex] = down[iswap]
-            down[iswap] = 0
-            down = State(down, self.path + '2', self.dim)
-        else:
-            down = None
-
-        # right:
-        iswap = self.zeroindex + 1
-        if izero_fdiv == iswap // self.dim[0]:
-            right = self.field[:]
-            right[self.zeroindex] = right[iswap]
-            right[iswap] = 0
-            right = State(right, self.path + '3', self.dim)
-        else:
-            right = None
-
-        return (left, up, down, right)
-
-    def estimate(self, heurf, _oldheur=0):
-        return heurf(self.tuple, self.dim, _oldheur)
-
-    def getStatePosition(self, element):
-        index = self.field.index(element)
-        return divmod(index, self.dim[0])
-
 
 # ######################## heuristic functions
 
@@ -514,6 +451,13 @@ def hCostLinearConflict(path, dim, _oldheur=0):
             if should_col > col: cost += should_col - col
             else: cost += col - should_col
     return cost
+
+def toString(state):
+    hashint = 0
+    for y in range(dim[1]):
+        for x in range(dim[0]):
+            state[i]
+    return hashint
 
 # highly used function!
 #
@@ -638,11 +582,62 @@ def hCostMpt(path, dim, _oldheur=0):
 
 # highly used function!
 #
+# for a element give coords (in state)
+def getStatePosition(state, dim, element):
+    index = state.index(element)
+    return divmod(index, dim[0])
+
+
+# highly used function!
+#
 # for a given state give possible next states
+def getNeighborStates(state, dim):
+    # precalc
+    izero = state.index(0)
+    izero_fdiv = izero // dim[0]
+    izero_mod = izero % dim[0]
+
+    # left:
+    iswap = izero - 1
+    if izero_fdiv == iswap // dim[0]:
+        left = state[:]
+        left[izero] = left[iswap]
+        left[iswap] = 0
+    else:
+        left = None
+
+    # up:
+    iswap = izero + dim[0]
+    if izero_mod == iswap % dim[0] and iswap < len(state):
+        up = state[:]
+        up[izero] = up[iswap]
+        up[iswap] = 0
+    else:
+        up = None
+
+    # down:
+    iswap = izero - dim[0]
+    if izero_mod == iswap % dim[0] and iswap >= 0:
+        down = state[:]
+        down[izero] = down[iswap]
+        down[iswap] = 0
+    else:
+        down = None
+
+    # right:
+    iswap = izero + 1
+    if izero_fdiv == iswap // dim[0]:
+        right = state[:]
+        right[izero] = right[iswap]
+        right[iswap] = 0
+    else:
+        right = None
+
+    return (left, up, down, right)
 
 
 # Do a search without ID
-def genericSearch(start, end_state, _heurf=lambda p, d: 0,
+def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
                   _dataStructure=Queue, _debug=False):
 
     visited = set()
@@ -654,24 +649,27 @@ def genericSearch(start, end_state, _heurf=lambda p, d: 0,
     global heuristic_calls
     heuristic_calls = 0
 
-    frontier.put((start.estimate(_heurf)+ start.plength,
-                              id(start), start))
+    item = (_heurf(('', 0, start_pos), puzzle.dim), 1, (' ', start_pos))
+    frontier.put(item)
 
     while not frontier.empty():
         max_frontier = max(frontier.qsize(), max_frontier)
 
         # hcosts, plength, path = heappop(heap)
-        hcosts, p, path = frontier.get()
-        oldhcost = hcosts - path.plength
+        hcosts, plength, path = frontier.get()
+        oldhcost = hcosts - plength
+        plength += 1
 
-        if path.fhash in visited:
+        head = path[-1]
+
+        if str(head) in visited:
             # omitted += 1
             continue
         else:
-            visited.add(path.fhash)
+            visited.add(str(head))
 
-            if path.field == end_state:
-                return path
+            if head == end_state:
+                return (path[0][1:], start_pos)
 
             if _debug and len(visited) % 10000 == 0:
                 print("----------\n" +
@@ -681,23 +679,31 @@ def genericSearch(start, end_state, _heurf=lambda p, d: 0,
                       "Cur Distance:  " + str(hcosts) + " | " +
                       str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
 
-            left, up, down, right = path.getNeighborStates()
+            left, up, down, right = getNeighborStates(head, puzzle.dim)
 
-            if left is not None and path.lastmove != '3' and left.fhash not in visited:
-                frontier.put((left.estimate(_heurf, _oldheur=oldhcost)+ left.plength,
-                              id(left), left))
+            if left is not None and path[0][-1] != '3' and str(left) not in visited:
+                new_path = (path[0] + '0', left)
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                             plength,
+                             new_path))
 
-            if up is not None and path.lastmove != '2' and up.fhash not in visited:
-                frontier.put((up.estimate(_heurf, _oldheur=oldhcost)+ up.plength,
-                              id(up), up))
+            if up is not None and path[0][-1] != '2' and str(up) not in visited:
+                new_path = (path[0] + '1', up)
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                             plength,
+                             new_path))
 
-            if down is not None and path.lastmove != '1' and down.fhash not in visited:
-                frontier.put((down.estimate(_heurf, _oldheur=oldhcost) + down.plength,
-                              id(down), down))
+            if down is not None and path[0][-1] != '1' and str(down) not in visited:
+                new_path = (path[0] + '2', down)
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                             plength,
+                             new_path))
 
-            if right is not None and path.lastmove != '0' and right.fhash not in visited:
-                frontier.put((right.estimate(_heurf, _oldheur=oldhcost)+ right.plength,
-                              id(right), right))
+            if right is not None and path[0][-1] != '0' and str(right) not in visited:
+                new_path = (path[0] + '3', right)
+                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                             plength,
+                             new_path))
 
             # frontier elements: (hcost+plength, plength, (string, state))
 
@@ -705,9 +711,9 @@ def genericSearch(start, end_state, _heurf=lambda p, d: 0,
 
 
 # Do a search with IDA
-def idaSearch(start, goal, heurf,
+def idaSearch(startPos, endPos, heurf,
               _dataStructure=Queue, _debug=False):
-    #bound = heurf([start], puzzle.dim)
+    #bound = heurf([startPos], puzzle.dim)
 
     global global_added_nodes
 
@@ -715,8 +721,8 @@ def idaSearch(start, goal, heurf,
     
     # for increasing bound by 2 you need to find the right start bound
     # that is 1 the MD of the blank tile to its final position is odd, 0 else
-    x, y = start.zeroxyf()
-    dist = abs(x-start.dim[0]) + abs(y-start.dim[1])
+    y, x = getStatePosition(startPos,puzzle.dim,0)
+    dist = abs(x-puzzle.dim[0]) + abs(y-puzzle.dim[1])
     bound = (dist%2)
     if True:
     #if _debug:
@@ -724,10 +730,13 @@ def idaSearch(start, goal, heurf,
         prev_elapsed = 0
 
     while True:
-        path = idaIteration(start, 1, bound, goal, heurf)
+        path = idaIteration(["x",startPos], 1, bound, endPos, heurf)
 
         if path is not None:
-            return path
+            #remove x in moves before returning
+            moves = path[0]
+            node = path[-1]
+            return [moves[1:],startPos]
 
         if True:
         #if _debug:
@@ -744,9 +753,9 @@ def idaSearch(start, goal, heurf,
 def idaIteration(path, lenpath, bound, endPos, heur):
     global global_added_nodes
     visited = set()
-    visited.add(path.fhash)
+    visited.add(str(path[-1]))
     visited_dict = {}
-    visited_dict[path.fhash] = 0
+    visited_dict[str(path[-1])] = 0
     frontier = []
     frontier.append(path)
     added_nodes = 0
@@ -754,165 +763,173 @@ def idaIteration(path, lenpath, bound, endPos, heur):
     start = timer()
     stop = timer()
     while frontier:
-        state = frontier.pop()
+        #print(frontier)
+        path = frontier.pop()
+        #print(path)
+        moves = path[0]
+        node = path[-1]
+        if True:
+        #if str(node) not in visited:
+            #visited.add(str(node))
+            if node == endPos:
+                print("Visited: " + str(len(visited)))
+                return path
+            #print(moves)
 
-        if state.field == endPos:
-            print("Visited: " + str(len(visited)))
-            return state
+            # moves includes start-symbol x, therefore subtract 1
+            movelen = len(moves) - 1
 
-        left, up, down, right = state.getNeighborStates()
+            left, up, down, right = getNeighborStates(node, puzzle.dim)
 
-        if left is not None and state.lastmove != '3':
-            estlen = left.plength + left.estimate(heur)
-            if estlen <= bound:
-                if left.fhash not in visited or visited_dict[left.fhash] > estlen:
-                    added_nodes += 1
-                    global_added_nodes += 1
-                    if added_nodes % 10000 == 0:
-                        stop = timer()
-                        delta = (stop - start) / 1000
-                        deltaSecs = (stop - start)
-                        start = timer()
-                        # Set True to enable debugging
-                        if True:
-                            print("\nCurrent State: ")
-                            print(state.field)
-                            print("\nPath: ")
-                            print(state.path)
-                            print("\nLength Path: ", state.plength)
-                            print("Bound: ", bound)
-                            print("Heuristic: ", left.estimate(heur))
-                            print("Length+Heuristic: ", estlen)
-                            print("Added nodes: ", added_nodes)
-                            print("Global added nodes: ", global_added_nodes)
-                            print("Closed nodes: ", len(visited))
-                            #print("Ommited Nodes: ", omitted_nodes)
-                            print("Stack Length: ", len(frontier))
-                            #print("Overall computed Heuristics: ", heuristic_calls)
-                            print('')
-                            print("Used Time: {}s".format(deltaSecs))      
-                    #if string in visited:
-                    #    if visited_dict[string] > estlen:
-                    #        print("update")
-                    visited_dict[left.fhash] = estlen
-                    #print("ol", visited_dict[string])
-                    #print(visited_dict)
-                    visited.add(left.fhash)
-                    frontier.append(left)
+            estlen = 0
+            string = ""
+            if left is not None and moves[-1] != '3':
+                estlen = movelen + heur([left], puzzle.dim)
+                if estlen <= bound:
+                    #continue
+                    string = str(left)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([left], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))      
+                        #if string in visited:
+                        #    if visited_dict[string] > estlen:
+                        #        print("update")
+                        visited_dict[string] = estlen
+                        #print("ol", visited_dict[string])
+                        #print(visited_dict)
+                        visited.add(string)
+                        frontier.append((moves + '0', left))
 
-        if up is not None and state.lastmove != '2':
-            estlen = up.plength + up.estimate(heur)
-            if estlen <= bound:
-                if up.fhash not in visited or visited_dict[up.fhash] > estlen:
-                    added_nodes += 1
-                    global_added_nodes += 1
-                    if added_nodes % 10000 == 0:
-                        stop = timer()
-                        delta = (stop - start) / 1000
-                        deltaSecs = (stop - start)
-                        start = timer()
-                        # Set True to enable debugging
-                        if True:
-                            print("\nCurrent State: ")
-                            print(state.field)
-                            print("\nPath: ")
-                            print(state.path)
-                            print("\nLength Path: ", state.plength)
-                            print("Bound: ", bound)
-                            print("Heuristic: ", up.estimate(heur))
-                            print("Length+Heuristic: ", estlen)
-                            print("Added nodes: ", added_nodes)
-                            print("Global added nodes: ", global_added_nodes)
-                            print("Closed nodes: ", len(visited))
-                            #print("Ommited Nodes: ", omitted_nodes)
-                            print("Stack Length: ", len(frontier))
-                            #print("Overall computed Heuristics: ", heuristic_calls)
-                            print('')
-                            print("Used Time: {}s".format(deltaSecs))      
-                    #if string in visited:
-                    #    if visited_dict[string] > estlen:
-                    #        print("update")
-                    visited_dict[up.fhash] = estlen
-                    #print("ol", visited_dict[string])
-                    #print(visited_dict)
-                    visited.add(up.fhash)
-                    frontier.append(up)
+            if up is not None and moves[-1] != '2':
+                estlen = movelen + heur([up], puzzle.dim)
+                if estlen <= bound:
+                    #print("fuckup")
+                    #continue
+                    string = str(up)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([up], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))      
+                        visited_dict[string] = estlen
+                        visited.add(string)
+                        frontier.append((moves + '1', up))
 
-        if down is not None and state.lastmove != '1':
-            estlen = down.plength + down.estimate(heur)
-            if estlen <= bound:
-                if down.fhash not in visited or visited_dict[down.fhash] > estlen:
-                    added_nodes += 1
-                    global_added_nodes += 1
-                    if added_nodes % 10000 == 0:
-                        stop = timer()
-                        delta = (stop - start) / 1000
-                        deltaSecs = (stop - start)
-                        start = timer()
-                        # Set True to enable debugging
-                        if True:
-                            print("\nCurrent State: ")
-                            print(state.field)
-                            print("\nPath: ")
-                            print(state.path)
-                            print("\nLength Path: ", state.plength)
-                            print("Bound: ", bound)
-                            print("Heuristic: ", down.estimate(heur))
-                            print("Length+Heuristic: ", estlen)
-                            print("Added nodes: ", added_nodes)
-                            print("Global added nodes: ", global_added_nodes)
-                            print("Closed nodes: ", len(visited))
-                            #print("Ommited Nodes: ", omitted_nodes)
-                            print("Stack Length: ", len(frontier))
-                            #print("Overall computed Heuristics: ", heuristic_calls)
-                            print('')
-                            print("Used Time: {}s".format(deltaSecs))      
-                    #if string in visited:
-                    #    if visited_dict[string] > estlen:
-                    #        print("update")
-                    visited_dict[down.fhash] = estlen
-                    #print("ol", visited_dict[string])
-                    #print(visited_dict)
-                    visited.add(down.fhash)
-                    frontier.append(down)
+            if down is not None and moves[-1] != '1':
+                estlen = movelen + heur([down], puzzle.dim)
+                if estlen <= bound:
+                    #print("fuckdown")
+                    #continue
+                    string = str(down)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([down], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))     
+                        visited_dict[string] =  estlen
+                        visited.add(string)
+                        frontier.append((moves + '2', down))
 
-        if right is not None and state.lastmove != '0':
-            estlen = right.plength + right.estimate(heur)
-            if estlen <= bound:
-                if right.fhash not in visited or visited_dict[right.fhash] > estlen:
-                    added_nodes += 1
-                    global_added_nodes += 1
-                    if added_nodes % 10000 == 0:
-                        stop = timer()
-                        delta = (stop - start) / 1000
-                        deltaSecs = (stop - start)
-                        start = timer()
-                        # Set True to enable debugging
-                        if True:
-                            print("\nCurrent State: ")
-                            print(state.field)
-                            print("\nPath: ")
-                            print(state.path)
-                            print("\nLength Path: ", state.plength)
-                            print("Bound: ", bound)
-                            print("Heuristic: ", right.estimate(heur))
-                            print("Length+Heuristic: ", estlen)
-                            print("Added nodes: ", added_nodes)
-                            print("Global added nodes: ", global_added_nodes)
-                            print("Closed nodes: ", len(visited))
-                            #print("Ommited Nodes: ", omitted_nodes)
-                            print("Stack Length: ", len(frontier))
-                            #print("Overall computed Heuristics: ", heuristic_calls)
-                            print('')
-                            print("Used Time: {}s".format(deltaSecs))      
-                    #if string in visited:
-                    #    if visited_dict[string] > estlen:
-                    #        print("update")
-                    visited_dict[right.fhash] = estlen
-                    #print("ol", visited_dict[string])
-                    #print(visited_dict)
-                    visited.add(right.fhash)
-                    frontier.append(right)
+            if right is not None and moves[-1] != '0':
+                estlen = movelen + heur([right], puzzle.dim)
+                if estlen <= bound:
+                    #print("fuckright")
+                    #continue
+                    string = str(right)
+                    if string not in visited or visited_dict[string] > estlen:
+                        added_nodes += 1
+                        global_added_nodes += 1
+                        if added_nodes % 10000 == 0:
+                            stop = timer()
+                            delta = (stop - start) / 1000
+                            deltaSecs = (stop - start)
+                            start = timer()
+                            # Set True to enable debugging
+                            if True:
+                                print("\nCurrent State: ")
+                                print(right)
+                                print("\nPath: ")
+                                print(moves)
+                                print("\nLength Path: ", movelen)
+                                print("Bound: ", bound)
+                                print("Heuristic: ", heur([right], puzzle.dim))
+                                print("Length+Heuristic: ", estlen)
+                                print("Added nodes: ", added_nodes)
+                                print("Global added nodes: ", global_added_nodes)
+                                print("Closed nodes: ", len(visited))
+                                #print("Ommited Nodes: ", omitted_nodes)
+                                print("Stack Length: ", len(frontier))
+                                #print("Overall computed Heuristics: ", heuristic_calls)
+                                print('')
+                                print("Used Time: {}s".format(deltaSecs))      
+                        visited_dict[string] = estlen
+                        visited.add(string)
+                        frontier.append((moves + '3', right))
 
     print("Visited: " + str(len(visited)))
     return None
