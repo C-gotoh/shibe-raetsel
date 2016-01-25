@@ -1077,8 +1077,9 @@ def main():
                   Heuristic("Manhatten * 1.1", hCostMhtn1_1x),
                   Heuristic("Manhattan * 1.5", hCostMhtn1_5x),
                   Heuristic("Manhattan * 2", hCostMhtn2x),
-                  Heuristic("Manhattan * 3", hCostMhtn3x),
-                  Heuristic("Invert Distance", hCostInvertDistance)]
+                  Heuristic("Manhattan * 3", hCostMhtn3x)#,
+                  #Heuristic("Invert Distance", hCostInvertDistance
+                    ]
     curHeur = heuristics[0]
 
     searches = [Search("BFS", Queue),
