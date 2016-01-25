@@ -25,6 +25,7 @@ keys = {}
 
 # Flags
 flag_debug = False
+flag_profile = False
 flag_hint = False
 
 # Performance Data
@@ -32,7 +33,7 @@ heuristic_calls = 0
 
 # ui
 font_large = 32
-font_small = 13
+font_small = 11
 font_tile = 20
 
 window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
@@ -54,23 +55,11 @@ class Puzzle(object):
         self.initstate = list(range(self.dim[0] * self.dim[1]))[1:]
         self.initstate.append(0)
 
-        self.twisted = False
+        self.twisted = True
 
         self.reset()
 
         self.solve('')
-
-        self.columnlist = []
-        for x in range(self.dim[0]):
-            for y in range(self.dim[1]):
-                self.columnlist.append([])
-                self.columnlist[x].append(self.boardcopy()[y*self.dim[0] + x])
-
-        self.rowlist = []
-        for y in range(self.dim[1]):
-            for x in range(self.dim[0]):
-                self.rowlist.append([])
-                self.rowlist[y].append(self.boardcopy()[y*self.dim[0] + x])
 
         return None
 
@@ -237,12 +226,12 @@ class Puzzle(object):
 
         return None
 
-    def search(self, searchObject, heuristicObject, _debug=False):
+    def search(self, searchObject, heuristicObject, _debug=False, _profile=False):
         start = self.boardcopy()
         goal = self.initcopy()
 
         return searchObject.run(start, goal, self.dim,
-                                heuristicObject, _debug, False)
+                                heuristicObject, _debug, _profile)
 
     def state(self):
         return '', self.boardcopy()
@@ -267,7 +256,7 @@ class Search(object):
         solution = ('', [])
 
         if _profile:
-            solution = self.runProfile(start, goal, dim, _heuristic)
+            solution = self.runProfile(start, goal, dim, _heuristic, _debug)
         else:
             heurf = _heuristic.function
             frontier = self.frontier
@@ -275,10 +264,10 @@ class Search(object):
             tstart = timer()
 
             if frontier is None:  # this is an ID search
-                solution = idaSearch(start, goal, heurf, False)
+                solution = idaSearch(start, goal, heurf, _debug)
                 solution = (solution[0], solution[-1])
             else:                  # this is a normal search
-                solution = genericSearch(start, goal, heurf, frontier, False)
+                solution = genericSearch(start, goal, heurf, frontier, _debug)
 
             tend = timer()
             elapsed_time = tend - tstart
@@ -289,19 +278,19 @@ class Search(object):
 
         return solution
 
-    def runProfile(self, start, goal, dim, heuristic):
+    def runProfile(self, start, goal, dim, heuristic, debug):
         heurf = heuristic.function
         frontier = self.frontier
         solution = ('', [])
 
         ref = [None]  # cProfile: need to pass a mutable object
         if frontier is None:      # this is an ID search
-            cProfile.runctx('ref[0] = idaSearch(start, goal, heurf, True)',
+            cProfile.runctx('ref[0] = idaSearch(start, goal, heurf, debug)',
                             globals(), locals())
             solution = (ref[0][0], ref[0][-1])
         else:              # this is a normal search
             cProfile.runctx('ref[0] = genericSearch(start, goal, heurf,' +
-                            'frontier, True)', globals(), locals())
+                            'frontier, debug)', globals(), locals())
             solution = ref[0]
 
         print("\n" + self.name + " is complete." +
@@ -314,72 +303,10 @@ class Heuristic(object):
     def __init__(self, name, function):
         self.name = name
         self.function = function
-
         return None
 
     def run(self, state, dim):
         return self.function(state, dim)
-
-
-# ######################## heuristic functions
-
-# highly used function!
-#
-# for a given path, calc the heuristic costs
-#
-def hCostInvertDistance(path, dim):
-    length = dim[0]*dim[1]
-    state = path[-1]
-    # Use of numpy to reformat state as columns
-    #array = np.asarray(state)
-    #matrix = array.reshape(dim[1],dim[0])
-    #matrixT = matrix.transpose()
-    #matrixL = matrixT.reshape(length)
-    #cols = np.reshape(np.transpose(np.reshape(np.asarray(state),dim[1],dim[0])),length)
-    #print(cols)
-    #print(matrix)
-    #print(matrixT)
-    #print(matrixL)
-    vertical = 0
-    horizontal = 0
-    inversions = 0
-    length = dim[0]*dim[1]
-    # calc number of vertical moves
-    for i in range(length):
-        ival = state[i]
-        if ival == 0: continue
-        for other in range(length):
-            otherval = state[other]
-            if otherval == 0: continue
-            if (i < other) and (otherval < ival):
-                #print(i,other,ival,otherval)
-                inversions += 1
-    vertical = inversions // 3 + inversions % 3
-    inversions = 0
-    # calc number of horizontal moves
-    for x in range(dim[0]):
-        for y in range(dim[1]):
-            xy = x*dim[1]+y
-            i = y*dim[0]+x
-            ival = state[i]
-            #print(xy, ival)
-            #print("---")
-            if ival == 0: continue
-            for xo in range(dim[0]):
-                for yo in range(dim[1]):
-                    xoyo = xo*dim[1]+yo
-                    o = yo*dim[0]+xo
-                    otherval = state[o]
-                    #print(xoyo, otherval)
-                    if otherval == 0: continue
-                    if (xy < xoyo) and (otherval < ival):
-                    #if (xy < xoyo) and (otherval < ival):
-                        #print("inv")
-                        inversions += 1
-    horizontal = inversions // 3 + inversions % 3
-
-    #return inversions
-    return vertical + horizontal
 
 
 # ######################## heuristic functions
@@ -438,8 +365,6 @@ def hCostManhattan(path, dim, _oldheur=0):
                 if should_col > col: cost += should_col - col
                 else: cost += col - should_col
         return cost
-
-    state = path[-1]
     lastmove = int(path[0][-1])
     izero = state.index(0)
 
@@ -553,7 +478,6 @@ def getStatePosition(state, dim, element):
 #
 # for a given state give possible next states
 def getNeighborStates(state, dim):
-    # precalc
     izero = state.index(0)
     izero_fdiv, izero_mod = divmod(izero, dim[0])
 
@@ -568,7 +492,7 @@ def getNeighborStates(state, dim):
 
     # up:
     iswap = izero + dim[0]
-    if izero_mod == iswap % dim[0] and iswap < len(state):
+    if iswap < dim[0]*dim[1] and izero_mod == iswap % dim[0]:
         up = state[:]
         up[izero] = up[iswap]
         up[iswap] = 0
@@ -577,7 +501,7 @@ def getNeighborStates(state, dim):
 
     # down:
     iswap = izero - dim[0]
-    if izero_mod == iswap % dim[0] and iswap >= 0:
+    if iswap >= 0 and izero_mod == iswap % dim[0]:
         down = state[:]
         down[izero] = down[iswap]
         down[iswap] = 0
@@ -602,7 +526,6 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
 
     visited = set()
     frontier = _dataStructure()
-    # heap = []
 
     max_frontier = 0
 
@@ -623,50 +546,46 @@ def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
         head = path[-1]
 
         if str(head) in visited:
-            # omitted += 1
             continue
-        else:
-            visited.add(str(head))
 
-            if head == end_state:
-                return (path[0][1:], start_pos)
+        visited.add(str(head))
 
-            if _debug and len(visited) % 10000 == 0:
-                print("----------\n" +
-                      "Heur. calls:   " + str(heuristic_calls) + "\n" +
-                      "Visited nodes: " + str(len(visited)) + "\n" +
-                      "Max. frontier: " + str(max_frontier) + "\n" +
-                      "Cur Distance:  " + str(hcosts) + " | " +
-                      str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
+        if head == end_state:
+            return (path[0][1:], start_pos)
 
-            left, up, down, right = getNeighborStates(head, puzzle.dim)
+        if _debug and len(visited) % 10000 == 0:
+            print("----------\n" +
+                  "Heur. calls:   " + str(heuristic_calls) + "\n" +
+                  "Visited nodes: " + str(len(visited)) + "\n" +
+                  "Max. frontier: " + str(max_frontier) + "\n" +
+                  "Cur Distance:  " + str(hcosts) + " | " +
+                  str(hcosts-plength+1) + "h, " + str(plength - 1) + "p")
 
-            if left is not None and path[0][-1] != '3' and str(left) not in visited:
-                new_path = (path[0] + '0', left)
-                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
-                             plength,
-                             new_path))
+        left, up, down, right = getNeighborStates(head, puzzle.dim)
 
-            if up is not None and path[0][-1] != '2' and str(up) not in visited:
-                new_path = (path[0] + '1', up)
-                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
-                             plength,
-                             new_path))
+        if left is not None and path[0][-1] != '3' and str(left) not in visited:
+            new_path = (path[0] + '0', left)
+            frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                         plength,
+                         new_path))
 
-            if down is not None and path[0][-1] != '1' and str(down) not in visited:
-                new_path = (path[0] + '2', down)
-                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
-                             plength,
-                             new_path))
+        if up is not None and path[0][-1] != '2' and str(up) not in visited:
+            new_path = (path[0] + '1', up)
+            frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                         plength,
+                         new_path))
 
-            if right is not None and path[0][-1] != '0' and str(right) not in visited:
-                new_path = (path[0] + '3', right)
-                frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
-                             plength,
-                             new_path))
+        if down is not None and path[0][-1] != '1' and str(down) not in visited:
+            new_path = (path[0] + '2', down)
+            frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                         plength,
+                         new_path))
 
-            # frontier elements: (hcost+plength, plength, (string, state))
-
+        if right is not None and path[0][-1] != '0' and str(right) not in visited:
+            new_path = (path[0] + '3', right)
+            frontier.put((_heurf(new_path, puzzle.dim, _oldheur=oldhcost) + plength,
+                         plength,
+                         new_path))
     return None
 
 
@@ -954,6 +873,7 @@ def on_draw():
     right = window.width - 180
     labels.append(("Hint: " + str(flag_hint), right, top))
     labels.append(("Debug: " + str(flag_debug), right, top - 1.5*font_small))
+    labels.append(("Profile: " + str(flag_profile), right, top - 3*font_small))
     labels.append(("Solution: " + str(len(puzzle.solution)) + " steps",
                    right, top - 4.5*font_small))
 
@@ -985,6 +905,10 @@ def toggleHeuristic():
 def toggleDebug():
     global flag_debug
     flag_debug = not flag_debug
+
+def toggleProfile():
+    global flag_profile
+    flag_profile = not flag_profile
 
 def toggleHint():
     global flag_hint
@@ -1034,9 +958,9 @@ def main():
     curSearch = searches[0]
 
     keys = {
-        key.B:     ('b', "search BFS", lambda: puzzle.solve(puzzle.search(searches[0], curHeur, flag_debug))),
-        key.A:     ('a', "search A*", lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
-        key.I:     ('i', "search IDA*", lambda: puzzle.solve(puzzle.search(searches[2], curHeur, flag_debug))),
+        key.B:     ('b', "search BFS", lambda: puzzle.solve(puzzle.search(searches[0], curHeur, flag_debug, flag_profile))),
+        key.A:     ('a', "search A*", lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug, flag_profile))),
+        key.I:     ('i', "search IDA*", lambda: puzzle.solve(puzzle.search(searches[2], curHeur, flag_debug, flag_profile))),
         key.SPACE: ('␣', "step through solution", lambda: puzzle.step()),
         key.ENTER: ('↲', "reset puzzle", lambda: puzzle.reset()),
         key.E:     ('e', "change heur", lambda: toggleHeuristic()),
@@ -1045,6 +969,7 @@ def main():
         key.T:     ('t', "random (heur bound)", lambda: puzzle.randomize(20, curHeur)),
         key.Y:     ('y', "switch key directions", lambda: puzzle.twistmoves()),
         key.X:     ('x', "toggle debug", lambda: toggleDebug()),
+        key.C:     ('c', "toggle profile", lambda: toggleProfile()),
         key.P:     ('p', "print solution", lambda: puzzle.debugsolution()),
         key.LEFT:  (None, "move left", lambda: puzzle.move(3)),
         key.UP:    (None, "move up", lambda: puzzle.move(1)),
