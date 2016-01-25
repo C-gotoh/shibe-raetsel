@@ -84,22 +84,14 @@ class Puzzle(object):
     def heuristic(self, _heuristic=curHeur):
         return _heuristic.run(self.state(), self.dim)
 
-    def debugheuristic(self):
-        print("Heuristic cost: " + str(self.heuristic()))
-
     def calchint(self):
         if not self.solved:
             if self.solution is not '':
                 hints = ['→', '↑', '↓', '←']
                 if puzzle.twisted:
                     hints.reverse()
-
                 self.hint = hints[int(self.solution[0])]
             else:
-                # calc a new hint
-                # puzzle.solve(puzzle.search(searches[2],
-                #                           heuristics[len(heuristics) - 1],
-                #                           False))
                 self.hint = None
         else:
             self.hint = None
@@ -115,9 +107,7 @@ class Puzzle(object):
 
     def solve(self, solution):
         if isinstance(solution, tuple):
-            # convert to String
             self.update(solution[1], _sol=solution[0])
-            # we are done
         elif isinstance(solution, str):
             self.solution = solution
         else:
@@ -139,14 +129,12 @@ class Puzzle(object):
 
             move = self.solution[0]
             rest = self.solution[1:]
-            # TODO try-catch to filter out illegal moves
             self.update(getNeighborStates(
                                 self.board,
                                 self.dim)[int(move)], _sol=rest)
 
         if self.solution == '':
             if not self.solved:
-                # the solution was wrong
                 print("the solution was wrong")
 
     # return a copy of solved game state
@@ -246,7 +234,6 @@ class Puzzle(object):
             self.update(new, _paritycheck=False, _sol=self.solution[1:])
         else:
             self.update(new, _paritycheck=False)
-            # The user moved in other dir than hint
 
         return None
 
@@ -264,14 +251,12 @@ class Puzzle(object):
 class Search(object):
     def __init__(self, name, _frontier=None):
         self.name = name
-        self.frontier = _frontier  # ida is None,
+        self.frontier = _frontier
 
         return None
 
     def run(self, start, goal, dim, _heuristic=None, _debug=False,
             _profile=False):
-        _profile = _debug  # for later
-
         if _heuristic is None:
             _heuristic = Heuristic("Zero", lambda p, d: 0)
 
@@ -291,7 +276,7 @@ class Search(object):
 
             if frontier is None:  # this is an ID search
                 solution = idaSearch(start, goal, heurf, False)
-                solution = self.pathConv(solution, dim)
+                solution = (solution[0], solution[-1])
             else:                  # this is a normal search
                 solution = genericSearch(start, goal, heurf, frontier, False)
 
@@ -313,7 +298,7 @@ class Search(object):
         if frontier is None:      # this is an ID search
             cProfile.runctx('ref[0] = idaSearch(start, goal, heurf, True)',
                             globals(), locals())
-            solution = self.pathConv(ref[0], dim)
+            solution = (ref[0][0], ref[0][-1])
         else:              # this is a normal search
             cProfile.runctx('ref[0] = genericSearch(start, goal, heurf,' +
                             'frontier, True)', globals(), locals())
@@ -323,23 +308,6 @@ class Search(object):
               "\n    Solution has " + str(len(solution[0])) + " steps.")
 
         return solution
-
-    # converts a given path in ida format
-    # to a string of moves plus start
-    def pathConv(self, path, dim):
-        #genpath = ""
-        #idapath = path[:]
-        #start = idapath[0]
-
-        #while len(idapath) > 1:
-        #    possible = getNeighborStates(idapath.pop(0), dim)
-        #    current = idapath[0]
-        #    for i in range(4):
-        #        if current == possible[i]:
-        #            genpath = genpath + str(i)
-
-        #return genpath, start
-        return path[0], path[-1]
 
 
 class Heuristic(object):
@@ -351,6 +319,7 @@ class Heuristic(object):
 
     def run(self, state, dim):
         return self.function(state, dim)
+
 
 # ######################## heuristic functions
 
@@ -413,51 +382,41 @@ def hCostInvertDistance(path, dim):
     return vertical + horizontal
 
 
-
 # ######################## heuristic functions
 
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-#
-def hCostLinearConflict(path, dim, _oldheur=0):
+# heuristic function: Toorac = tiles out of row and column
+def hCostToorac(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
-
     for row in range(dim[1]):
-        rowtimesdimzero = row * dim[0]
         for col in range(dim[0]):
-            index = rowtimesdimzero + col
-            num = state[index]
-            if num == 0: continue
-            should_row, should_col = divmod(num - 1, dim[0])
-            if should_col == col:  # col num should
-                for i in range(row):
-                    pre = state[index - (i+1) * dim[0]]
-                    if pre < num: continue # pre != 0 is checked implicitly
-                    if (pre-1) % dim[0] != col: continue  # col pre should
-                    cost += 2
-
-            if should_row == row:  #row num should
-                for x in range(rowtimesdimzero, index):
-                    pre = state[x]
-                    if pre < num: continue # pre != 0 is checked implicitly
-                    if (pre-1) // dim[0] != row: continue  # row pre should
-                    cost += 2
-
-            if should_row > row: cost += should_row - row
-            else: cost += row - should_row
-
-            if should_col > col: cost += should_col - col
-            else: cost += col - should_col
+            num = state[row * dim[0] + col]
+            if num is 0: continue
+            should_row = (num-1) // dim[0]
+            should_col = (num-1) % dim[0]
+            if row != should_row:
+                cost += 1
+            if col != should_col:
+                cost += 1
     return cost
 
-def toString(state):
-    hashint = 0
-    for y in range(dim[1]):
-        for x in range(dim[0]):
-            state[i]
-    return hashint
+
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# heuristic funktion: Mpt = Misplaced Tiles
+def hCostMpt(path, dim, _oldheur=0):
+    state = path[-1]
+    cost = 0
+    for i, num in enumerate(state):
+        exp = i + 1
+        if exp !=  num and exp != 16:
+            cost += 1
+    return cost
+
 
 # highly used function!
 #
@@ -518,66 +477,68 @@ def hCostManhattan(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
-def hCostMhtn3x(path, dim, _oldheur=0):
-    return hCostManhattan(path, dim) * 3
-
-
-# highly used function!
 #
-# for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
-def hCostMhtn2x(path, dim, _oldheur=0):
-    return hCostManhattan(path, dim) * 2
-
-
-# highly used function!
-#
-# for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
-def hCostMhtn1_5x(path, dim, _oldheur=0):
-    return int(hCostManhattan(path, dim) * 1.5)
-
-# highly used function!
-#
-# for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
-def hCostMhtn1_1x(path, dim, _oldheur=0):
-    return int(hCostManhattan(path, dim) * 1.1)
-
-
-# highly used function!
-#
-# for a given path, calc the heuristic costs
-# heuristic function: Toorac = tiles out of row and column
-def hCostToorac(path, dim, _oldheur=0):
+def hCostLinearConflict(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
+
     for row in range(dim[1]):
+        rowtimesdimzero = row * dim[0]
         for col in range(dim[0]):
-            num = state[row * dim[0] + col]
-            if num is 0: continue
-            should_row = (num-1) // dim[0]
-            should_col = (num-1) % dim[0]
-            if row != should_row:
-                cost += 1
-            if col != should_col:
-                cost += 1
+            index = rowtimesdimzero + col
+            num = state[index]
+            if num == 0: continue
+            should_row, should_col = divmod(num - 1, dim[0])
+            if should_col == col:  # col num should
+                for i in range(row):
+                    pre = state[index - (i+1) * dim[0]]
+                    if pre < num: continue # pre != 0 is checked implicitly
+                    if (pre-1) % dim[0] != col: continue  # col pre should
+                    cost += 2
+
+            if should_row == row:  #row num should
+                for x in range(rowtimesdimzero, index):
+                    pre = state[x]
+                    if pre < num: continue # pre != 0 is checked implicitly
+                    if (pre-1) // dim[0] != row: continue  # row pre should
+                    cost += 2
+
+            if should_row > row: cost += should_row - row
+            else: cost += row - should_row
+
+            if should_col > col: cost += should_col - col
+            else: cost += col - should_col
     return cost
 
 
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# heuristic funktion: Mpt = Misplaced Tiles
-def hCostMpt(path, dim, _oldheur=0):
-    state = path[-1]
-    cost = 0
-    for i, num in enumerate(state):
-        exp = i + 1
-        if exp !=  num and exp != 16:
-            cost += 1
-    return cost
+# Just for fun, calc manhattan times 3
+def hCostLC3x(path, dim, _oldheur=0):
+    return hCostLinearConflict(path, dim) * 3
+
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
+def hCostLC2x(path, dim, _oldheur=0):
+    return hCostLinearConflict(path, dim) * 2
+
+
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
+def hCostLC1_5x(path, dim, _oldheur=0):
+    return int(hCostLinearConflict(path, dim) * 1.5)
+
+# highly used function!
+#
+# for a given path, calc the heuristic costs
+# Just for fun, calc manhattan times 3
+def hCostLC1_1x(path, dim, _oldheur=0):
+    return int(hCostLinearConflict(path, dim) * 1.1)
 
 
 # highly used function!
@@ -594,8 +555,7 @@ def getStatePosition(state, dim, element):
 def getNeighborStates(state, dim):
     # precalc
     izero = state.index(0)
-    izero_fdiv = izero // dim[0]
-    izero_mod = izero % dim[0]
+    izero_fdiv, izero_mod = divmod(izero, dim[0])
 
     # left:
     iswap = izero - 1
@@ -730,7 +690,7 @@ def idaSearch(startPos, endPos, heurf,
         prev_elapsed = 0
 
     while True:
-        path = idaIteration(["x",startPos], 1, bound, endPos, heurf)
+        path = idaIteration(["x",startPos], 1, bound, endPos, heurf, _debug)
 
         if path is not None:
             #remove x in moves before returning
@@ -748,9 +708,8 @@ def idaSearch(startPos, endPos, heurf,
                   " (cumulated)" + " add.: " + str(diff))
         bound += 2
 
-
 # Used by IDA to search until a given bound
-def idaIteration(path, lenpath, bound, endPos, heur):
+def idaIteration(path, lenpath, bound, endPos, heur, debug):
     global global_added_nodes
     visited = set()
     visited.add(str(path[-1]))
@@ -797,7 +756,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             deltaSecs = (stop - start)
                             start = timer()
                             # Set True to enable debugging
-                            if True:
+                            if debug:
                                 print("\nCurrent State: ")
                                 print(right)
                                 print("\nPath: ")
@@ -838,7 +797,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             deltaSecs = (stop - start)
                             start = timer()
                             # Set True to enable debugging
-                            if True:
+                            if debug:
                                 print("\nCurrent State: ")
                                 print(right)
                                 print("\nPath: ")
@@ -874,7 +833,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             deltaSecs = (stop - start)
                             start = timer()
                             # Set True to enable debugging
-                            if True:
+                            if debug:
                                 print("\nCurrent State: ")
                                 print(right)
                                 print("\nPath: ")
@@ -910,7 +869,7 @@ def idaIteration(path, lenpath, bound, endPos, heur):
                             deltaSecs = (stop - start)
                             start = timer()
                             # Set True to enable debugging
-                            if True:
+                            if debug:
                                 print("\nCurrent State: ")
                                 print(right)
                                 print("\nPath: ")
@@ -1018,34 +977,25 @@ def on_key_press(symbol, modifiers):
     if symbol in keys.keys():
         keys[symbol][2]()
 
-
 def toggleHeuristic():
     global curHeur, heuristics
     new_index = (heuristics.index(curHeur)+1) % len(heuristics)
     curHeur = heuristics[new_index]
 
-
 def toggleDebug():
     global flag_debug
     flag_debug = not flag_debug
-
 
 def toggleHint():
     global flag_hint
     flag_hint = not flag_hint
 
-def convertPuzzle(state):
-    for i in range(len(state)):
-        if state[i] == "":
-            state[i] = 0
-        else:
-            state[i] += 1
-    return state
-
 def main():
     global puzzle, searches, curSearch, heuristics, curHeur, keys
 
-    if len(sys.argv) == 2:
+    if len(sys.argv) == 1:
+        puzzle = Puzzle(4, 4)
+    elif len(sys.argv) == 2:
         board = []
         given = sys.argv[1].replace(' ', '').split(',')
         for tile in given:
@@ -1065,21 +1015,17 @@ def main():
                 break
         puzzle = Puzzle(len(board)//y, y)
         puzzle.update(board)
-    elif len(sys.argv) == 1:
-        puzzle = Puzzle(4, 4)
     else:
         print("Unable to parse given data")
 
-    heuristics = [Heuristic("Manhattan distance", hCostManhattan),
-                  Heuristic("Misplaced tiles", hCostMpt),
+    heuristics = [Heuristic("Misplaced Tiles", hCostMpt),
                   Heuristic("Tiles out of row & column", hCostToorac),
-                  Heuristic("Linear conflicts", hCostLinearConflict),
-                  Heuristic("Manhatten * 1.1", hCostMhtn1_1x),
-                  Heuristic("Manhattan * 1.5", hCostMhtn1_5x),
-                  Heuristic("Manhattan * 2", hCostMhtn2x),
-                  Heuristic("Manhattan * 3", hCostMhtn3x)#,
-                  #Heuristic("Invert Distance", hCostInvertDistance
-                    ]
+                  Heuristic("Manhattan Distance", hCostManhattan),
+                  Heuristic("Linear Conflicts", hCostLinearConflict),
+                  Heuristic("LC * 1.1", hCostLC1_1x),
+                  Heuristic("LC * 1.5", hCostLC1_5x),
+                  Heuristic("LC * 2", hCostLC2x),
+                  Heuristic("LC * 3", hCostLC3x)]
     curHeur = heuristics[0]
 
     searches = [Search("BFS", Queue),
@@ -1087,39 +1033,23 @@ def main():
                 Search("IDA*", None)]
     curSearch = searches[0]
 
-    #testpuzzle = [10, 2,  5,  4, 0,  11, 13, 8, 3,  7,  6,  12, 14, 1,  9,  15]
-    testpuzzle = convertPuzzle([12, 4, 2, 7, 6, 1, 9, 3, 14, 5, 8, '', 0, 10, 11, 13])
-    #61 steps
-    #testpuzzle = [14,12,15,13,6,1,8,9,10,11,4,7,0,2,5,3]
-    print(testpuzzle)
-
     keys = {
-        key.B:     ('b',  "search BFS",
-                    lambda: puzzle.solve(puzzle.search(searches[0], curHeur, flag_debug))),
-        key.A:     ('a',  "search A*",
-                    lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
-        key.I:     ('i',  "search IDA*",
-                    lambda: puzzle.solve(puzzle.search(searches[2], curHeur, flag_debug))),
-        key.SPACE: ('␣',  "step through solution", lambda: puzzle.step()),
-        key.ENTER: ('↲',  "reset puzzle", lambda: puzzle.reset()),
-        key.E:     ('e',  "change heuristic", lambda: toggleHeuristic()),
-        key.H:     ('h',  "show/hide hint", lambda: toggleHint()),
-        key.R:     ('r',  "random puzzle", lambda: puzzle.randomize(0, curHeur)),
-        key.T:     (None, "(random) puzzle", lambda: puzzle.randomize(20, curHeur)),
+        key.B:     ('b', "search BFS", lambda: puzzle.solve(puzzle.search(searches[0], curHeur, flag_debug))),
+        key.A:     ('a', "search A*", lambda: puzzle.solve(puzzle.search(searches[1], curHeur, flag_debug))),
+        key.I:     ('i', "search IDA*", lambda: puzzle.solve(puzzle.search(searches[2], curHeur, flag_debug))),
+        key.SPACE: ('␣', "step through solution", lambda: puzzle.step()),
+        key.ENTER: ('↲', "reset puzzle", lambda: puzzle.reset()),
+        key.E:     ('e', "change heur", lambda: toggleHeuristic()),
+        key.H:     ('h', "toggle hint", lambda: toggleHint()),
+        key.R:     ('r', "random", lambda: puzzle.randomize(0, curHeur)),
+        key.T:     ('t', "random (heur bound)", lambda: puzzle.randomize(20, curHeur)),
+        key.Y:     ('y', "switch key directions", lambda: puzzle.twistmoves()),
+        key.X:     ('x', "toggle debug", lambda: toggleDebug()),
+        key.P:     ('p', "print solution", lambda: puzzle.debugsolution()),
         key.LEFT:  (None, "move left", lambda: puzzle.move(3)),
         key.UP:    (None, "move up", lambda: puzzle.move(1)),
         key.DOWN:  (None, "move down", lambda: puzzle.move(2)),
-        key.RIGHT: (None, "move right", lambda: puzzle.move(0)),
-        key.Y:     (None, "change directions", lambda: puzzle.twistmoves()),
-        key.P:     (None, "print current solution", lambda: puzzle.debugsolution()),
-        key.X:     (None, "toggle Debug", lambda: toggleDebug()),
-        key.Q:     (None, "", lambda: puzzle.update(testpuzzle)),
-        #key.Q:     (None, "", lambda: puzzle.update([0, 15, 14,  13,
-        #                                             12, 11, 10, 9,
-        #                                             8,  7,  6,  5,
-        #                                             4, 3,  2,  1])),
-        # deprecated
-        key.C:     (None, "deprecated", lambda: puzzle.debugheuristic())}
+        key.RIGHT: (None, "move right", lambda: puzzle.move(0))}
 
     pyglet.app.run()
 
