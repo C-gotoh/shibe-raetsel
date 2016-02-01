@@ -38,8 +38,11 @@ font_tile = 20
 window = pyglet.window.Window(resizable=True, caption='15-Puzzle')
 maxdimension = min(window.width, window.height)
 
-bgimg = None
-# bgimg = pyglet.resource.image('data/img/img.png')
+try:
+    bgimg = pyglet.resource.image('dodge.png')
+except Exception:
+    print("No dodge found")
+    bgimg = None
 
 pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
 
