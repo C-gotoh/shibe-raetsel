@@ -813,7 +813,7 @@ def on_draw():
                     tile = '⋅'
 
             number = pyglet.text.Label(
-                tile, font_size=size, color=color,
+                tile, font_size=size, bold=True, color=color,
                 x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
                 y=window.height-offsety-(y+1)*(maxdimension/(puzzle.dim[1]+1)),
                 anchor_x='center', anchor_y='center')
