@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Imports
+# ######################## Imports
 import sys
 import math
 import pyglet  # INSTALL
@@ -13,7 +13,7 @@ from timeit import default_timer as timer
 import cProfile
 
 
-# ---- globals
+# ######################## Globals
 
 # will be initialized elsewhere
 searches = []
@@ -44,6 +44,8 @@ bgimg = None
 pyglet.gl.glClearColor(0.1, 0.1, 0.1, 1)
 
 
+# ######################## Puzzle logic
+
 # Objects of class Puzzle represent a singe game
 class Puzzle(object):
 
@@ -62,9 +64,11 @@ class Puzzle(object):
 
         return None
 
+    # Toggle twisted directions
     def twistmoves(self):
         self.twisted = not self.twisted
 
+    # Print the solution
     def debugsolution(self):
         text = "Solution"
         for element in self.solution:
@@ -74,9 +78,11 @@ class Puzzle(object):
                 text = text + ' ' + ['→', '↑', '↓', '←'][int(element)]
         print(text)
 
+    # Run heuristic
     def heuristic(self, _heuristic=curHeur):
         return _heuristic.run(self.state(), self.dim)
 
+    # Update hint
     def calchint(self):
         if not self.solved:
             if self.solution is not '':
@@ -98,6 +104,7 @@ class Puzzle(object):
         self.solvable = True
         self.solve('')
 
+    # Provide a solution to the puzzle
     def solve(self, solution):
         if isinstance(solution, tuple):
             self.update(solution[1], _sol=solution[0])
@@ -111,7 +118,6 @@ class Puzzle(object):
         return None
 
     # If there is a solution go one step further
-    # doesnt work with ida solutions yet
     def step(self):
         if isinstance(self.solution, tuple):
             self.solution = self.solution[0]
@@ -130,24 +136,24 @@ class Puzzle(object):
             if not self.solved:
                 print("the solution was wrong")
 
-    # return a copy of solved game state
+    # Return a copy of solved game state
     def initcopy(self):
         return self.initstate[:]
 
-    # return a copy of actual game state
+    # Return a copy of actual game state
     def boardcopy(self):
         return self.board[:]
 
-    # return index of given number in game
+    # Return index of given number in game
     def index(self, element):
         return self.board.index(element) % self.dim[0],\
                self.board.index(element) // self.dim[0]
 
-    # return element at given coords
+    # Return element at given coords
     def tile(self, x, y):
         return self.board[y*self.dim[0] + x]
 
-    # set the game state and check for solvability
+    # Set the game state and check for solvability
     def update(self, newfield, _paritycheck=True, _sol=''):
         self.board = newfield[:]
         if _paritycheck:
@@ -156,7 +162,7 @@ class Puzzle(object):
 
         self.solve(_sol)
 
-    # ...
+    # Randomize puzzle (with a heuristic bound)
     def random(self, _bound=0, _heuristic=None):
         iter_max = 10000
         if _bound <= 0:
@@ -181,10 +187,11 @@ class Puzzle(object):
 
         self.update(min_board)
 
+    # Is the puzzle solved?
     def checksolved(self):
         self.solved = self.board == self.initcopy()
 
-    # is the puzzle solvable
+    # Is the puzzle solvable?
     def checkparity(self):
         inversions = 0
         for num in self.board:
@@ -209,7 +216,7 @@ class Puzzle(object):
 
         return None
 
-    # swap the empty tile with left neighbor
+    # Swap the empty tile with neighbor
     def move(self, direction):
         neighbors = list(getNeighborStates(self.board, self.dim))
 
@@ -230,6 +237,7 @@ class Puzzle(object):
 
         return None
 
+    # Run a search on puzzle
     def search(self, searchObject, heuristicObject,
                _debug=False, _profile=False):
         start = self.boardcopy()
@@ -238,17 +246,38 @@ class Puzzle(object):
         return searchObject.run(start, goal, self.dim,
                                 heuristicObject, _debug, _profile)
 
+    # Return a state with no solution
     def state(self):
         return '', self.boardcopy()
 
 
+# ######################## Heuristic class
+
+class Heuristic(object):
+
+    # Initialize with name and function
+    def __init__(self, name, function):
+        self.name = name
+        self.function = function
+        return None
+
+    # Calc heuristic cost
+    def run(self, state, dim):
+        return self.function(state, dim)
+
+
+# ######################## Search class
+
 class Search(object):
+
+    # Initialize with name and data structure
     def __init__(self, name, _frontier=None):
         self.name = name
         self.frontier = _frontier
 
         return None
 
+    # Run this search
     def run(self, start, goal, dim, _heuristic=None, _debug=False,
             _profile=False):
         if _heuristic is None:
@@ -284,6 +313,7 @@ class Search(object):
 
         return solution
 
+    # Run search with cProfile
     def runProfile(self, start, goal, dim, heuristic, debug):
         heurf = heuristic.function
         frontier = self.frontier
@@ -305,17 +335,7 @@ class Search(object):
         return solution
 
 
-class Heuristic(object):
-    def __init__(self, name, function):
-        self.name = name
-        self.function = function
-        return None
-
-    def run(self, state, dim):
-        return self.function(state, dim)
-
-
-# ######################## heuristic functions
+# ######################## Heuristic functions
 
 # highly used function!
 #
@@ -354,7 +374,7 @@ def hCostMpt(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-#
+# heuristic funktion: Manhattan Distance
 def hCostManhattan(path, dim, _oldheur=0):
     state = path[-1]
     if _oldheur == 0 or len(path[0]) == 0:
@@ -415,7 +435,7 @@ def hCostManhattan(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-#
+# heuristic funktion: LC = Linear Conflicts
 def hCostLinearConflict(path, dim, _oldheur=0):
     state = path[-1]
     cost = 0
@@ -461,7 +481,7 @@ def hCostLinearConflict(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
+# Just for fun, calc LC times 3
 def hCostLC3x(path, dim, _oldheur=0):
     return hCostLinearConflict(path, dim) * 3
 
@@ -469,7 +489,7 @@ def hCostLC3x(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
+# Just for fun, calc LC times 2
 def hCostLC2x(path, dim, _oldheur=0):
     return hCostLinearConflict(path, dim) * 2
 
@@ -477,7 +497,7 @@ def hCostLC2x(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
+# Just for fun, calc LC times 1.5
 def hCostLC1_5x(path, dim, _oldheur=0):
     return int(hCostLinearConflict(path, dim) * 1.5)
 
@@ -485,7 +505,7 @@ def hCostLC1_5x(path, dim, _oldheur=0):
 # highly used function!
 #
 # for a given path, calc the heuristic costs
-# Just for fun, calc manhattan times 3
+# Just for fun, calc LC times 1.1
 def hCostLC1_1x(path, dim, _oldheur=0):
     return int(hCostLinearConflict(path, dim) * 1.1)
 
@@ -497,6 +517,8 @@ def getStatePosition(state, dim, element):
     index = state.index(element)
     return divmod(index, dim[0])
 
+
+# ######################## Additional functions for search
 
 # highly used function!
 #
@@ -543,6 +565,8 @@ def getNeighborStates(state, dim):
 
     return (left, up, down, right)
 
+
+# ######################## Search functions
 
 # Do a search without ID
 def genericSearch(start_pos, end_state, _heurf=lambda p, d: 0,
@@ -740,6 +764,8 @@ def idaIteration(path, bound, end_state, heur, debug):
     return None
 
 
+# ######################## GUI
+
 @window.event
 def on_resize(width, height):
     global maxdimension
@@ -845,6 +871,8 @@ def toggleHint():
     global flag_hint
     flag_hint = not flag_hint
 
+
+# ######################## Main function
 
 def main():
     global puzzle, searches, curSearch, heuristics, curHeur, keys
