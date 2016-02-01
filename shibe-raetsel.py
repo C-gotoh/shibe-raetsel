@@ -796,6 +796,9 @@ def on_draw():
     # ---- Use background image
     if bgimg is not None:
         bgimg.blit(offsetx, offsety)
+        color = (0, 0, 0, 255)
+    else:
+        color = (255, 255, 255, 255)
 
     # ---- Draw puzzle
     for y in range(puzzle.dim[1]):
@@ -810,7 +813,7 @@ def on_draw():
                     tile = '⋅'
 
             number = pyglet.text.Label(
-                tile, font_size=size,
+                tile, font_size=size, color=color,
                 x=offsetx+(x+1)*(maxdimension/(puzzle.dim[0]+1)),
                 y=window.height-offsety-(y+1)*(maxdimension/(puzzle.dim[1]+1)),
                 anchor_x='center', anchor_y='center')
